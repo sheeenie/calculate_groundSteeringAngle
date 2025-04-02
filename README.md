@@ -1,5 +1,12 @@
 # 2025-group-12
 
+## Tools used
+* Docker 
+* Ubuntu 24.04
+* git 
+* C++
+* CMake
+
 ## Installation / step-to-step guide
 After cloning the project into a new folder, run the following commands in the terminal to build and run the project:
 
@@ -31,7 +38,7 @@ The reviewer approve after changes has been made or developers’ comments has b
 If there are no improvement comments which the reviewer can leave ( the artifact is perfect as it is ), then it is encouraged to merge the branch directly. There is no need for the developer(s) to resolve comments if there is nothing to change. 
 
 ### Fix unexpected behaviour in existing featurs 
-
+If a problem occurs in the code or artifact, the group shall be notified in the designated communication media. An issue will be created and related branch where the problem will be resolved. When the problem has been resolved, the related branch will be merged to the main/master branch with the procedure mentioned above. 
 
 ## Commit style
 The commits shall start with # followed by the issue number the commit is connected to. The commit shall be maximum 50 characters long and it shall be written in present tense. A commit shall follow the following structure: If I make this commit I will <the commit message>. No punctuation mark shall be used at the end of the commit message.
