@@ -7,17 +7,14 @@
 * C++
 * CMake
 
-## Installation / step-to-step guide
+## Installation / Step-to-step guide
 After cloning the project into a new folder, run the following commands in the terminal to build and run the project:
 
-cd a6
+`cd a6`
+`docker build -t &lt;name_of_image&gt;:latest -f Dockerfile .`
+`docker run --rm &lt;name_of_image&gt;:latest 42`
 
-docker build -t <name_of_image>:latest -f Dockerfile .
-
-docker run --rm <name_of_image>:latest 42
-
-
-## Authors and acknowledgment
+## Authors and Acknowledgment
 Ling Svahn,
 William Johansson, 
 Sin Yee Sheenie Chan,
@@ -33,7 +30,7 @@ When an issue has all acceptance criterias completed, it is ready for a merge re
 
 The developer(s) working on the branch will look through the reviewer's comments and do changes if necessary. If no changes are made when the reviewer made suggested improvements the developer(s) have to explain why the suggested improvement has not been done by writing comments in the merge request (i.e., answer to the reviewers comments). 
 
-The reviewer approve after changes has been made or developers’ comments has been sufficient enough why changes has not been applied. The reviewer then merges the branch to main. The source branch shall be deleted and the comments untouched, i.e., do not squash the comments.
+The reviewer approves after changes have been made or developers’ comments has been sufficient enough why changes has not been applied. The reviewer then merges the branch to main. The source branch shall be deleted and the comments untouched, i.e., do not squash the comments.
 
 If there are no improvement comments which the reviewer can leave ( the artifact is perfect as it is ), then it is encouraged to merge the branch directly. There is no need for the developer(s) to resolve comments if there is nothing to change. 
 
@@ -47,5 +44,5 @@ An example of a commit message:
 #64 Add attributes to class Car
 
 ## License 
-This project is released under the terms of the MIT License
+This project is released under the terms of the MIT License.
 
