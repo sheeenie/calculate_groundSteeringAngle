@@ -2,6 +2,7 @@
 #include "PrimeChecker.hpp"
 // This function defines the main program
 int main(int argc, char** argv) {
+    // Checks that 2 argumenrs were given
     if (argc == 2) {
         int number = std::stoi(argv[1]);
         PrimeChecker pc;
