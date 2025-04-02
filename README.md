@@ -6,13 +6,16 @@
 * git 
 * C++
 * CMake
+* VSCode
 
 ## Installation / Step-to-step guide
 After cloning the project into a new folder, run the following commands in the terminal to build and run the project:
 
-`cd a6`
-`docker build -t &lt;name_of_image&gt;:latest -f Dockerfile .`
-`docker run --rm &lt;name_of_image&gt;:latest 42`
+```bash
+cd a6
+docker build -t <name_of_image>:latest -f Dockerfile .
+docker run --rm <name_of_image>:latest 42
+```
 
 ## Authors and Acknowledgment
 Ling Svahn,
@@ -21,12 +24,12 @@ Sin Yee Sheenie Chan,
 Samuel Partain
 
 ## How the team is working
-### Add new featurs
+### Adding new features
 The team has decided to use feature branches for the development. Each branch will be connected to an issue and from that issue a branch will be created. Each branch will have maximun two developers working on it at the same time, and minimum one developer. Hence, max four branches will be open at the same time, excluding the main/master branch.
 
 Each issue will have a **goal/purpose** and **acceptance criterias** to ensure a mutual understanding between the developers by having a shared understanding of what needs to be done, and when the tasks are completed. The acceptance criterias shall be testable and consist of something the system should do.
 
-When an issue has all acceptance criterias completed, it is ready for a merge request. The developer(s) which has worked on the issue and its related branch are not allowed to be a reviewer of the merge request. The reviewer looks through the changes made and leaves at least one comment on what is positive. Additional comments are not mandatory, if not applicable. If something can be improved, the reviewer leaves constructive critique/comments regarding the code or artifact. The comments shall be about implementation or the artifact and not about a person.
+When an issue has all acceptance criterias completed, it is ready for a merge request. The developer(s) who has worked on the issue and its related branch are not allowed to be a reviewer of the merge request. The reviewer looks through the changes made and leaves at least one comment on what is positive. Additional comments are not mandatory, if not applicable. If something can be improved, the reviewer leaves constructive critique/comments regarding the code or artifact. The comments shall be about implementation or the artifact and not about a person.
 
 The developer(s) working on the branch will look through the reviewer's comments and do changes if necessary. If no changes are made when the reviewer made suggested improvements the developer(s) have to explain why the suggested improvement has not been done by writing comments in the merge request (i.e., answer to the reviewers comments). 
 
