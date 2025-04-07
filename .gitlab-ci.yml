@@ -39,7 +39,7 @@ build-and-test:
     - docker-build
   stage: build
   script:
-    - docker build -f ./a6/Dockerfile .
+    - docker build -f ./a6/Dockerfile ./a6
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
