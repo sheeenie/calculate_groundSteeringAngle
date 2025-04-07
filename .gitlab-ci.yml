@@ -40,15 +40,13 @@ build:
     - docker-build
   stage: build
   script:
-    - docker build -f Dockerfile -t "$CI_REGISTRY_IMAGE:latest" .
-    - docker push "$CI_REGISTRY_IMAGE:latest"
-
+    - docker build -f Dockerfile -t CI/CD:latest .
 test:
   tags:
     - docker-build
   stage: test
   script:
-    - docker run "$CI_REGISTRY_IMAGE:latest" /opt/helloworld
+    - docker run --rm CI/CD:latest /opt/helloworld
    # - apk update && apk add --no-cache g++ make cmake
    # - pwd
    # - mkdir -p build
