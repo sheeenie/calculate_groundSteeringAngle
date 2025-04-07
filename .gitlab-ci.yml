@@ -23,7 +23,7 @@ variables:
 
 services:
   - name: docker:19.03.3-dind
-
+# Three stages; build, test and deploy (if the tags match the syntax)
 stages:
   - build
   - test
@@ -43,7 +43,7 @@ build:
     - docker build -f Dockerfile .
   except: 
     - tags
-
+# This section describes what shall be done to test the project
 test:
   tags:
     - docker-build
