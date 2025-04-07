@@ -55,8 +55,7 @@ test:
     - cmake ..
     - make
     - pwd
-    - ./TestPrimeChecker --success
-    - pwd
+    - ./helloworld-runner --success
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
