@@ -54,7 +54,9 @@ test:
     - pwd
     - cmake ..
     - make
+    - pwd
     - ./TestPrimeChecker --success
+    - pwd
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
