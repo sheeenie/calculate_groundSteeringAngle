@@ -47,15 +47,16 @@ test:
     - docker-build
   stage: test
   script:
-    - apk update && apk add --no-cache g++ make cmake
-    - pwd
-    - mkdir -p build
-    - cd build
-    - pwd
-    - cmake ..
-    - make
-    - pwd
-    - ./helloworld-Runner --success
+    - docker run "$CI_REGISTRY_IMAGE:19.03.3" /opt/helloworld
+   # - apk update && apk add --no-cache g++ make cmake
+   # - pwd
+   # - mkdir -p build
+   # - cd build
+   # - pwd
+   # - cmake ..
+   # - make
+   # - pwd
+   # - ./helloworld-Runner --success 
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
