@@ -53,11 +53,15 @@ before_script:
 #    - make
 #    - ./helloworld-Runner
 build:
+  tags:
+    - docker-build
   stage: build
   script:
     - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -f Dockerfile .
 
 test:
+  tags:
+    - docker-build
   stage: test
   script:
     - docker run $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA /bin/sh -c \"mkdir -p build && cd build && cmake .. && make && ./helloworld-Runner --success" 
