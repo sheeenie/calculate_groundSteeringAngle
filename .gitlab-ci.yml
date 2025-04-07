@@ -26,6 +26,7 @@ services:
 
 stages:
   - build
+  - test
   - deploy
 
 # Display information before we start the build.
@@ -33,13 +34,21 @@ before_script:
   - docker info
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
-# This section describes what shall be done to build and test the project.
-build-and-test:
+# This section describes what shall be done to build the project.
+build:
   tags:
     - docker-build
   stage: build
   script:
     - docker build -f Dockerfile .
+
+test:
+  tags:
+    - docker-build
+  stage: test
+  script:
+    - cd $BUILD_DIR
+    - ctest --output-on-failure
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
