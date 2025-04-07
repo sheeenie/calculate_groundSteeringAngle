@@ -47,8 +47,11 @@ test:
     - docker-build
   stage: test
   script:
+    - apt-get update && apt-get install -y g++ make
     - cd $BUILD_DIR
-    - ctest --output-on-failure
+    - cmake .
+    - make
+    - ./PrimeCheckerTest --success
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
