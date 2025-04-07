@@ -47,7 +47,7 @@ test:
     - docker-build
   stage: test
   script:
-    - apt-get update && apt-get install -y g++ make cmake
+    - apk update && apk add --no-cache g++ make cmake
     - cd $BUILD_DIR
     - cmake .
     - make
