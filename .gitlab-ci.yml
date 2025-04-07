@@ -64,7 +64,7 @@ test:
     - docker-build
   stage: test
   script:
-    - docker run $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA /bin/sh -c \"mkdir -p build && cd build && cmake .. && make && ./helloworld-Runner --success" 
+    - docker run $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA /bin/sh -c "mkdir -p build && cd build && cmake .. && make && ./helloworld-Runner --success"
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
