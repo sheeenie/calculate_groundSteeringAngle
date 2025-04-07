@@ -47,7 +47,7 @@ test:
     - docker-build
   stage: test
   script:
-    - docker run "$CI_REGISTRY_IMAGE:19.03.3" /opt/helloworld
+    - docker run "$CI_REGISTRY_IMAGE:latest" /opt/helloworld
    # - apk update && apk add --no-cache g++ make cmake
    # - pwd
    # - mkdir -p build
