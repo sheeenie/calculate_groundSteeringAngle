@@ -49,9 +49,10 @@ test:
   script:
     - apk update && apk add --no-cache g++ make cmake
     - pwd
-    - cd $BUILD_DIR
+    - mkdir -p build
+    - cd build
     - pwd
-    - cmake .
+    - cmake ..
     - make
     - ./PrimeCheckerTest --success
 
