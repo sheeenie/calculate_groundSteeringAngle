@@ -35,36 +35,24 @@ before_script:
   - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
 
 # This section describes what shall be done to build the project.
-#build:
-#  tags:
-#    - docker-build
-#  stage: build
-#  script:
-#    - docker build -f Dockerfile .
-#test:
-#  tags:
-#    - docker-build
-#  stage: test
-#  script:
-#    - apk update && apk add --no-cache g++ make cmake
-#    - mkdir -p build
-#    - cd build
-#    - cmake ..
-#    - make
-#    - ./helloworld-Runner
 build:
   tags:
     - docker-build
   stage: build
   script:
-    - docker build -t $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA -f Dockerfile .
+    - docker build -f Dockerfile .
 
 test:
   tags:
     - docker-build
   stage: test
   script:
-    - docker run $CI_REGISTRY_IMAGE:$CI_COMMIT_SHA /bin/sh -c "mkdir -p build && cd build && cmake .. && make && ./helloworld-Runner --success"
+    - apk update && apk add --no-cache g++ make cmake
+    - mkdir -p build
+    - cd build
+    - cmake ..
+    - make
+    - ./helloworld-Runner --success
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
