@@ -40,13 +40,13 @@ build:
     - docker-build
   stage: build
   script:
-    - docker build -f Dockerfile -t CI/CD:latest .
+    - docker build -f Dockerfile -t ci/cd:latest .
 test:
   tags:
     - docker-build
   stage: test
   script:
-    - docker run --rm CI/CD:latest /opt/helloworld
+    - docker run --rm ci/cd:latest /opt/helloworld
    # - apk update && apk add --no-cache g++ make cmake
    # - pwd
    # - mkdir -p build
