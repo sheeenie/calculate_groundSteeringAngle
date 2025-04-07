@@ -13,7 +13,3 @@ TEST_CASE("6 is not a prime") {
     REQUIRE(pc.isPrime(6) == false );
 }
 
-TEST_CASE("Test to fail") {
-    PrimeChecker pc;
-    REQUIRE_FALSE(pc.isPrime(7)); // 7 is prime, so this fails
-}
