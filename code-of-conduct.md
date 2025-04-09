@@ -10,6 +10,7 @@ We will be performing textly-stand-ups in our communication channel of choice ( 
 We will have one meeting every Monday to plan the week ahead.
 We will have one meeting every Friday to review what we have done during the week.
 Monday and Friday meetings are held in person, however since one member cannot come to campus for a short time period, the Monday and Friday meetings will be held remotely. If a member cannot meet up in person for the scheduled meetings, they will be held remotely. 
+The group has decided to work both remotely and in person. Tasks assigned to individuals can be completed in whichever setting they prefer, on-site or remotely, unless the group collectively agrees to meet and work together, either in person or online.
 
 3. How do we ensure knowledge transfer among our team members?
 The group has created dedicated text and voice channels to ease the organization of information. To build on this, the group will inform the group if something was difficult or unclear during the lectures/work process, that way the members will be able to share their experiences and knowledge. 
@@ -18,12 +19,12 @@ The group has created dedicated text and voice channels to ease the organization
 We communicate and inform the group when we make decisions which will change the product drastically. Further, we will communicate when we run into problems, update the kanban boards, or when I as a group member does not have anything to do, so that the group can assign a new task to the member. We will also be performing textly-stand-ups which enables us to have a shared understanding of everyone’s workflow/blockers. 
 
 5. How will we solve conflicts?
+To avoid conflicts, the group makes decisions together. In the event of a tie, an open discussion will be held where arguments from both sides are heard. If a decision still cannot be reached after reevaluation, a coin toss will be used to break the tie.
 If there is a conflict between two members, they will deal with it internally. Further, if the conflict can not be solved in a civilized manner, a third member should be involved. Finally, if the conflict is impossible to solve, the teacher will be contacted and the conflict will hopefully be solved. 
 
 6. How do you plan to ensure responsible use of LLMs in your project and how do you transparently and traceably document the use of LLMs? 
 Instead of just copy pasting code, text or other artifacts, the group will have a great understanding of the code written and developed, whether if it was created by a member or by an LLM. Further, if code is taken from a LLM, a screenshot will be taken of what the prompt was, as well as on the code that was taken. All text artifacts shall be written by the members ( derive from our own ideas), and text can be refined by a LLM ( this should be documented and honest, to ensure that our work is our own, and we shall not take credit for something which is not our idea ).
 
-7. The group has decided to work both remotely and in person. Tasks assigned to individuals can be completed in whichever setting they prefer, on-site or remotely, unless the group collectively agrees to meet and work together, either in person or online.
 
 #### Reformed answer to question 3 based on the answer provided by a locally running LLM
  
