@@ -9,6 +9,7 @@ We will collaborate using Git, and more specifically, GitLab. We will create spe
 We will be performing textly-stand-ups in our communication channel of choice ( Discord ). We will also be tracking our progress of assignments on a Trello kanban board, whilst specific issues/branches will be tracked on the GitLab kanban board. All the members will help each other to move the cards accordingly, so that the progress reflects the actual work. 
 We will have one meeting every Monday to plan the week ahead.
 We will have one meeting every Friday to review what we have done during the week.
+Monday and Friday meetings are held in person, however since one member cannot come to campus for a short time period, the Monday and Friday meetings will be held remotely. If a member cannot meet up in person for the scheduled meetings, they will be held remotely. 
 
 3. How do we ensure knowledge transfer among our team members?
 The group has created dedicated text and voice channels to ease the organization of information. To build on this, the group will inform the group if something was difficult or unclear during the lectures/work process, that way the members will be able to share their experiences and knowledge. 
@@ -21,6 +22,8 @@ If there is a conflict between two members, they will deal with it internally. F
 
 6. How do you plan to ensure responsible use of LLMs in your project and how do you transparently and traceably document the use of LLMs? 
 Instead of just copy pasting code, text or other artifacts, the group will have a great understanding of the code written and developed, whether if it was created by a member or by an LLM. Further, if code is taken from a LLM, a screenshot will be taken of what the prompt was, as well as on the code that was taken. All text artifacts shall be written by the members ( derive from our own ideas), and text can be refined by a LLM ( this should be documented and honest, to ensure that our work is our own, and we shall not take credit for something which is not our idea ).
+
+7. The group has decided to work both remotely and in person. Tasks assigned to individuals can be completed in whichever setting they prefer, on-site or remotely, unless the group collectively agrees to meet and work together, either in person or online.
 
 #### Reformed answer to question 3 based on the answer provided by a locally running LLM
  
