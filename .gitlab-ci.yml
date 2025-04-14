@@ -61,6 +61,8 @@ test:
 
 # This section describes how to generate coverage reports
 coverage:
+  tags:
+   - docker-build
   stage: coverage
   image: docker:19.03.3 
   script:
