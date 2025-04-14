@@ -64,7 +64,6 @@ coverage:
   tags:
     - docker-build
   stage: coverage
-  image: ubuntu:24.04
   script:
     - apt-get -qq update && apt-get -qq install -y gcovr ggcov lcov cmake make
     - mkdir -p build
