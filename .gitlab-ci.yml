@@ -66,17 +66,15 @@ coverage:
   stage: coverage
   image: docker:19.03.3 
   script:
-    - apk update && apk add --no-cache g++ make cmake gcovr lcov
+    - apk update && apk add --no-cache g++ make cmake gcovr 
     - pip install --user gcovr 
     - mkdir -p build
     - cd build
     - cmake -DCMAKE_CXX_FLAGS="--coverage" ..
     - make
     - ./helloworld-Runner --success
-    - lcov --directory . --capture --output-file coverage.info
-    - lcov --remove coverage.info '/usr/*' --output-file coverage.info
-    - lcov --list coverage.info
-    - gcovr --html-details -o coverage.html  
+    - gcovr --root .. --xml-pretty --output coverage.xml 
+    - gcovr --root .. --html --html-details -o coverage.html
   artifacts:
     paths:
       - build/coverage.html 
