@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Which Docker image shall be used on the GitLab runner?
-image: docker:19.03.3
+image: docker:24.0
 
 # Details about how to connect to the Docker service to run this build.
 variables:
@@ -22,7 +22,7 @@ variables:
   DOCKER_TLS_CERTDIR: ""
 
 services:
-  - name: docker:19.03.3-dind
+  - name: docker:24.0-dind
 # Three stages; build, test and deploy (if the tags match the syntax)
 stages:
   - build
@@ -65,7 +65,7 @@ coverage:
   tags:
    - docker-build
   stage: coverage
-  image: docker:19.03.3 
+  image: docker:24.0
   script:
     - apk update && apk add --no-cache g++ make cmake gcovr py3-pip libxml2-dev libxslt-dev python3 python3-dev
     - pip3 install setuptools
