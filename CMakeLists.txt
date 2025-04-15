@@ -19,6 +19,8 @@ enable_testing()
 add_executable(${PROJECT_NAME}-Runner
     ${CMAKE_CURRENT_SOURCE_DIR}/test/TestPrimeChecker.cpp
     ${CMAKE_CURRENT_SOURCE_DIR}/src/PrimeChecker.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/test/Testhelloworld.cpp
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/helloworld.cpp
 )
 
 # Register test
