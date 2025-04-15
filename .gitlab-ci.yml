@@ -66,6 +66,7 @@ coverage:
     - docker-build
   stage: coverage
   image: alpine:latest
+  before_script: []
   script:
     - apk update && apk add --no-cache g++ make cmake lcov gcovr py3-pip python3
     - mkdir -p build
