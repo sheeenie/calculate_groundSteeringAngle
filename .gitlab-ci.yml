@@ -87,7 +87,9 @@ coverage:
       - build/lcov-report/
       - build/coverage.xml
     reports:
-      cobertura: build/coverage.xml
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
     expire_in: 52 weeks
 
 # To receive a coverage report in the web UI
