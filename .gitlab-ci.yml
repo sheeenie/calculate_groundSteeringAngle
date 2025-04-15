@@ -39,7 +39,7 @@ before_script:
 # This section describes what shall be done to build the project.
 build:
   tags:
-    - docker-build
+    - docker
   stage: build
   script:
     - docker build -f Dockerfile .
@@ -48,7 +48,7 @@ build:
 # This section describes what shall be done to test the project
 test:
   tags:
-    - docker-build
+    - docker
   stage: test
   script:
     - apk update && apk add --no-cache g++ make cmake
@@ -63,7 +63,7 @@ test:
 # This section describes how to generate coverage reports
 coverage:
   tags:
-   - docker-build
+   - docker
   stage: coverage
   image: docker:19.03.3 
   script:
@@ -94,7 +94,7 @@ coverage:
 # To receive a coverage report in the web UI
 pages: 
   tags:
-    - docker-build
+    - docker
   stage: pages
   script:
     - echo "Publishing coverage report to GitLab Pages"
@@ -109,7 +109,7 @@ pages:
 # This section describes what shall be done to deploy artefacts from the project.
 release:
   tags:
-    - docker-build
+    - docker
   stage: deploy
   script:
     - docker build -f Dockerfile -t "$CI_REGISTRY_IMAGE":"$CI_COMMIT_TAG" .
