@@ -79,6 +79,10 @@ coverage:
   artifacts:
     paths:
       - build/coverage.html 
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: build/coverage.xml
     expire_in: 52 week
   except:
     - tags
