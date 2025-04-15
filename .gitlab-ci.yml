@@ -91,6 +91,7 @@ coverage:
       coverage_report:
         coverage_format: cobertura
         path: coverage.xml
+      cobertura: coverage.xml
     expire_in: 52 weeks
 
 # To receive a coverage report in the web UI
