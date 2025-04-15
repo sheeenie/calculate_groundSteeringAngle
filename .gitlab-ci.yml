@@ -79,6 +79,13 @@ coverage:
     - genhtml coverage.info --output-directory lcov-report
     - gcovr --root .. --xml-pretty --output coverage.xml
     - gcovr --root .. --html --html-details -o gcovr-report.html
+    
+    - cp coverage.info ../
+    - cp coverage.xml ../
+    - cp -r lcov-report ../
+    - mkdir -p ../public
+    - cp -r lcov-report/* ../public/
+
     - mkdir -p ../public
     - cp -r lcov-report/* ../public/
   artifacts:
