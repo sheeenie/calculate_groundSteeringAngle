@@ -67,7 +67,7 @@ coverage:
   image: docker:19.03.3 
   script:
     - apk update && apk add --no-cache g++ make cmake gcovr py3-pip
-    - pip install --user gcovr 
+    - pip3 install --user gcovr 
     - mkdir -p build
     - cd build
     - cmake -DCMAKE_CXX_FLAGS="--coverage" ..
