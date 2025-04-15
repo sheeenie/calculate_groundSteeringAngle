@@ -39,7 +39,7 @@ before_script:
 # This section describes what shall be done to build the project.
 build:
   tags:
-    - docker
+    - shell
   stage: build
   script:
     - docker build -f Dockerfile .
@@ -63,7 +63,7 @@ test:
 # This section describes how to generate coverage reports
 coverage:
   tags:
-   - docker
+   - shell
   stage: coverage
   image: docker:19.03.3 
   script:
@@ -94,7 +94,7 @@ coverage:
 # To receive a coverage report in the web UI
 pages: 
   tags:
-    - docker
+    - shell
   stage: pages
   script:
     - echo "Publishing coverage report to GitLab Pages"
@@ -109,7 +109,7 @@ pages:
 # This section describes what shall be done to deploy artefacts from the project.
 release:
   tags:
-    - docker
+    - shell
   stage: deploy
   script:
     - docker build -f Dockerfile -t "$CI_REGISTRY_IMAGE":"$CI_COMMIT_TAG" .
