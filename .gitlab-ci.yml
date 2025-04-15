@@ -75,7 +75,7 @@ coverage:
     - make
     - ./helloworld-Runner --success
     - lcov --capture --directory . --output-file coverage.info
-    - lcov --remove coverage.info '/usr/*' '*/tests/*' --output-file coverage.info
+    - lcov --remove coverage.info '/usr/*' '*/test/*' --output-file coverage.info
     - genhtml coverage.info --output-directory lcov-report
     - gcovr --root .. --xml-pretty --output coverage.xml
     - gcovr --root .. --html --html-details -o gcovr-report.html
@@ -84,13 +84,13 @@ coverage:
   artifacts:
     paths:
       - public
-      - build/coverage.info
-      - build/lcov-report/
-      - build/coverage.xml
+      - coverage.info
+      - lcov-report/
+      - coverage.xml
     reports:
       coverage_report:
         coverage_format: cobertura
-        path: build/coverage.xml
+        path: coverage.xml
     expire_in: 52 weeks
 
 # To receive a coverage report in the web UI
