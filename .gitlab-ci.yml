@@ -80,8 +80,8 @@ coverage:
     - gcovr --root .. --xml-pretty --output coverage.xml
     - gcovr --root .. --html --html-details -o gcovr-report.html
     - mkdir -p ../public
-    #- cp -r lcov-report/* ../public/
-    - cp gcovr-report.html ../public/index.html
+    #- cp -r lcov-report/* ../public/      # Gives many coverge report files 
+    - cp gcovr-report.html ../public/index.html     # Gives one coverage report file 
 
   artifacts:
     paths:
