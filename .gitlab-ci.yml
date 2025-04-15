@@ -78,7 +78,7 @@ coverage:
     - gcovr --root .. --xml-pretty --output coverage.xml 
     - gcovr --root .. --html --html-details -o coverage.html
     - mkdir -p ../public       
-    - cp coverage.html ../public
+    - cp coverage.html ../public/index.html
   artifacts:
     paths:
       - public
