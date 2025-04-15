@@ -93,6 +93,8 @@ coverage:
 
 # To receive a coverage report in the web UI
 pages: 
+  tags:
+    - docker-build
   stage: pages
   script:
     - echo "Publishing coverage report to GitLab Pages"
