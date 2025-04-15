@@ -104,7 +104,7 @@ pages:
     paths:
       - public 
   only:
-    - 9-add-branch-coverage              
+    - 9-add-branch-coverage                  
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
