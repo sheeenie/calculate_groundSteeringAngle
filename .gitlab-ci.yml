@@ -66,9 +66,9 @@ coverage:
     - docker-build
   stage: coverage
   image: alpine:latest
-  before_script: []
+  before_script: 
   script:
-    - apk update && apk add --no-cache g++ make cmake lcov gcovr py3-pip python3
+    - apk update && apk add --no-cache g++ make cmake lcov gcovr py3-pip python3 gzip
     - mkdir -p build
     - cd build
     - cmake -DCMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_C_FLAGS="-fprofile-arcs -ftest-coverage" ..
