@@ -28,6 +28,7 @@ stages:
   - build
   - test
   - coverage
+  - pages
   - deploy
 
 # Display information before we start the build.
@@ -76,8 +77,11 @@ coverage:
     - ./helloworld-Runner --success
     - gcovr --root .. --xml-pretty --output coverage.xml 
     - gcovr --root .. --html --html-details -o coverage.html
+    - mkdir -p ../public       
+    - cp coverage.html ../public
   artifacts:
     paths:
+      - public
       - build/coverage.html 
     reports:
       coverage_report:
@@ -86,6 +90,15 @@ coverage:
     expire_in: 52 week
   except:
     - tags
+
+# To receive a coverage report in the web UI
+pages: 
+  stage: pages
+  script:
+    - echo "Publishing coverage report to GitLab Pages"
+  artifacts:
+    paths:
+      - public               
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
