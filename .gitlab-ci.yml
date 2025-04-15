@@ -98,6 +98,8 @@ pages:
   stage: pages
   script:
     - echo "Publishing coverage report to GitLab Pages"
+  dependencies:
+    - coverage
   artifacts:
     paths:
       - public               
