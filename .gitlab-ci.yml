@@ -47,26 +47,6 @@ build:
   except: 
     - tags
 
-# Build the h264decoder from GitHub
-build-h264decoder:
-  stage: build
-  tags:
-    - docker-build
-  script:
-  - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 -t h264decoder:v0.0.5
-  except:
-    - tags
-  
-# Pull OpenDLV vehicle view iamge from Dockerhub
-pull-opendlv-vehicle-view:
-  stage: build
-  tags:
-    - docker-build
-  script:
-    - docker pull chrberger/opendlv-vehicle-view:v0.0.64
-  except:
-    - tags
-
 # This section describes what shall be done to test the project
 test:
   tags:
@@ -89,12 +69,9 @@ test-h264-opendlv:
   tags:
     - docker-build
   script:
-    - echo "Checking if h264decoder image exists and runs"
-    - docker images | grep h264decoder || (echo "Missing h264decoder image" && exit 1)
+    - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 -t h264decoder:v0.0.5
     - docker run --rm --net=host h264decoder:v0.0.5 --cid=253 --name=img --help | grep "Usage"
-
-    - echo "Checking if opendlv vehicle view image exists and runs"
-    - docker images | grep opendlv-vehicle-view || (echo "Missing opendlv image" && exit 1)
+    - docker pull chrberger/opendlv-vehicle-view:v0.0.64
     - docker run --rm chrberger/opendlv-vehicle-view:v0.0.64 --help
 
 # This section describes how to generate coverage reports
