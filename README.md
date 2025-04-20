@@ -50,7 +50,12 @@ docker run --rm -i --init --net=host \
 ```
 ### 2. Go to http://<your-vm-ip>:8081 to access via your web browser.
 
-### 3. Pull and run OpenDLV Vehicle View
+If you have a multipass VM, you can find your VM IP address by running:
+```bash
+multipass info <your-VM-name>
+```
+
+### 3. Build and run the h264decoder
 ```bash
 docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 \
   -f microservices/h264decoder/Dockerfile \
