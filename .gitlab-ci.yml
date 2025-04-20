@@ -23,6 +23,7 @@ variables:
 
 services:
   - name: docker:24.0-dind
+
 # Three stages; build, test and deploy (if the tags match the syntax)
 stages:
   - build
@@ -45,6 +46,27 @@ build:
     - docker build -f Dockerfile .
   except: 
     - tags
+
+# Build the h264decoder from GitHub
+build-h264decoder:
+  stage: build
+  tags:
+    - docker-build
+  script:
+    - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 -f microservices/h264decoder/Dockerfile -t h264decoder:v0.0.5
+  except:
+    - tags
+  
+# Pull OpenDLV vehicle view iamge from Dockerhub
+pull-opendlv-vehicle-view:
+  stage: build
+  tags:
+    - docker-build
+  script:
+    - docker pull chrberger/opendlv-vehicle-view:v0.0.64
+  except:
+    - tags
+
 # This section describes what shall be done to test the project
 test:
   tags:
