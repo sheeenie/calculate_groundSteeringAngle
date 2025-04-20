@@ -53,8 +53,7 @@ build-h264decoder:
   tags:
     - docker-build
   script:
-  - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 \
-      -t h264decoder:v0.0.5
+  - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 -t h264decoder:v0.0.5
   except:
     - tags
   
