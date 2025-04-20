@@ -82,6 +82,21 @@ test:
   except: 
     - tags
 
+test-h264-opendlv:
+  stage: test
+  only:
+    - 10-h264-opendlv-setup
+  tags:
+    - docker-build
+  script:
+    - echo "Checking if h264decoder image exists and runs"
+    - docker images | grep h264decoder || (echo "Missing h264decoder image" && exit 1)
+    - docker run --rm --net=host h264decoder:v0.0.5 --cid=253 --name=img --help | grep "Usage"
+
+    - echo "Checking if opendlv vehicle view image exists and runs"
+    - docker images | grep opendlv-vehicle-view || (echo "Missing opendlv image" && exit 1)
+    - docker run --rm chrberger/opendlv-vehicle-view:v0.0.64 --help
+
 # This section describes how to generate coverage reports
 coverage:
   tags:
