@@ -73,7 +73,7 @@ test-h264-opendlv:
     - timeout 10s docker run --rm h264decoder:v0.0.5 --help || echo "h264decoder help timed out or exited"
     - docker pull chrberger/opendlv-vehicle-view:v0.0.64
     - echo "Testing opendlv-vehicle-view startup..."
-    - timeout 10s docker run --rm chrberger/opendlv-vehicle-view:v0.0.64 || echo "opendlv vehicle view exited or timed out"
+    - timeout --signal=KILL 10s docker run --rm chrberger/opendlv-vehicle-view:v0.0.64 || echo "opendlv vehicle view exited or was killed"
 
 # This section describes how to generate coverage reports
 coverage:
