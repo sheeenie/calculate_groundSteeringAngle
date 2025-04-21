@@ -62,6 +62,7 @@ test:
   except: 
     - tags
 
+# Test for h264decoder and openDLV microservices
 test-h264-opendlv:
   stage: test
   only:
@@ -73,8 +74,22 @@ test-h264-opendlv:
     - timeout 10s docker run --rm h264decoder:v0.0.5 --help || echo "h264decoder help timed out or exited"
     - docker pull chrberger/opendlv-vehicle-view:v0.0.64
     - echo "Testing opendlv-vehicle-view startup..."
-    - timeout --signal=KILL 10s docker run --rm chrberger/opendlv-vehicle-view:v0.0.64 || echo "opendlv vehicle view exited or was killed"
+    - timeout --signal=KILL 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or was killed"
 
+# Test for hsv filter microservice
+test-hsv-filter:
+  stage: test
+  only:
+    - 11-add-hsv-filter
+  tags:
+    - docker-build
+  script:
+    - echo "Building hsv-filter microservice from GitHub..."
+    - docker build -t hsv:latest -f Dockerfile https://github.com/chrberger/opendlv-video-hsv-inspector.git
+
+    - echo "Testing hsv-filter microservice startup with timeout..."
+    - timeout 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or timed out"
+  
 # This section describes how to generate coverage reports
 coverage:
   tags:
