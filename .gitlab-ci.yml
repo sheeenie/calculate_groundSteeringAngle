@@ -89,7 +89,21 @@ test-hsv-filter:
 
     - echo "Testing hsv-filter microservice startup with timeout..."
     - timeout 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or timed out"
-  
+
+# Test for steering angle microservice
+test-steering-angle:
+  stage: test
+  only:
+    - 12-steering-angle-microservice
+  tags:
+    - docker-build
+  script:
+    - echo "Building steering-angle microservice from local Dockerfile..."
+    - docker build -t steering-angle:latest -f microservices/steering-angle-microservice/Dockerfile microservices/steering-angle-microservice
+
+    - echo "Testing steering-angle microservice startup..."
+    - timeout --signal=KILL 10s docker run --rm steering-angle:latest --cid=253 --name=img --width=640 --height=480 || echo "steering-angle exited or was killed"
+    
 # This section describes how to generate coverage reports
 coverage:
   tags:
