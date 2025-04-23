@@ -1,3 +1,10 @@
+// What the template currently does:
+//  - Attaches to shared memory to read ARGB image frames
+//  - Displays frame visually using OpenCV
+//  - Receives GroundSteeringRequest message (but doesn't do anything on it)
+//  - o verlays red rectangle
+//  - DOES NOT compute or send any new data(e.g. steering angle)
+
 /*
  * Copyright (C) 2020  Christian Berger
  *
