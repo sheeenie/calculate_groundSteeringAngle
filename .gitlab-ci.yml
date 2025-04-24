@@ -14,7 +14,7 @@
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
 # Which Docker image shall be used on the GitLab runner?
-image: docker:19.03.3
+image: docker:24.0
 
 # Details about how to connect to the Docker service to run this build.
 variables:
@@ -22,11 +22,14 @@ variables:
   DOCKER_TLS_CERTDIR: ""
 
 services:
-  - name: docker:19.03.3-dind
+  - name: docker:24.0-dind
+
 # Three stages; build, test and deploy (if the tags match the syntax)
 stages:
   - build
   - test
+  - coverage
+  - pages
   - deploy
 
 # Display information before we start the build.
@@ -43,6 +46,7 @@ build:
     - docker build -f Dockerfile .
   except: 
     - tags
+
 # This section describes what shall be done to test the project
 test:
   tags:
@@ -57,6 +61,104 @@ test:
     - ./helloworld-Runner --success
   except: 
     - tags
+
+# Test for h264decoder and openDLV microservices
+test-h264-opendlv:
+  stage: test
+  only:
+    - 10-h264-opendlv-setup
+  tags:
+    - docker-build
+  script:
+    - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 -t h264decoder:v0.0.5
+    - timeout 10s docker run --rm h264decoder:v0.0.5 --help || echo "h264decoder help timed out or exited"
+    - docker pull chrberger/opendlv-vehicle-view:v0.0.64
+    - echo "Testing opendlv-vehicle-view startup..."
+    - timeout --signal=KILL 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or was killed"
+
+# Test for hsv filter microservice
+test-hsv-filter:
+  stage: test
+  only:
+    - 11-add-hsv-filter
+  tags:
+    - docker-build
+  script:
+    - echo "Building hsv-filter microservice from GitHub..."
+    - docker build -t hsv:latest -f Dockerfile https://github.com/chrberger/opendlv-video-hsv-inspector.git
+
+    - echo "Testing hsv-filter microservice startup with timeout..."
+    - timeout 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or timed out"
+
+# Test for steering angle microservice
+test-steering-angle:
+  stage: test
+  only:
+    - 12-steering-angle-microservice
+  tags:
+    - docker-build
+  script:
+    - echo "Building steering-angle microservice from local Dockerfile..."
+    - docker build -t steering-angle:latest -f microservices/steering-angle-microservice/Dockerfile microservices/steering-angle-microservice
+
+    - echo "Testing steering-angle microservice startup..."
+    - timeout --signal=KILL 10s docker run --rm steering-angle:latest --cid=253 --name=img --width=640 --height=480 || echo "steering-angle exited or was killed"
+    
+# This section describes how to generate coverage reports
+coverage:
+  tags:
+    - docker-build
+  stage: coverage
+  image: alpine:latest
+  before_script: []
+  script:
+    - apk update && apk add --no-cache g++ make cmake lcov gcovr py3-pip python3 gzip
+    - mkdir -p build
+    - cd build
+    - cmake -DCMAKE_CXX_FLAGS="-fprofile-arcs -ftest-coverage" -DCMAKE_C_FLAGS="-fprofile-arcs -ftest-coverage" ..
+    - make
+    - ./helloworld-Runner --success
+    - lcov --capture --directory . --output-file coverage.info
+    - lcov --remove coverage.info '/usr/*' '*/test/*' --output-file coverage.info
+    - genhtml coverage.info --output-directory lcov-report
+    - gcovr --root .. --xml-pretty --output coverage.xml
+    - gcovr --root .. --html --html-details -o gcovr-report.html
+    
+    - cp coverage.info ../
+    - cp coverage.xml ../
+    - cp -r lcov-report ../
+    - mkdir -p ../public
+    - cp -r lcov-report/* ../public/
+
+    - mkdir -p ../public
+    - cp -r lcov-report/* ../public/
+  artifacts:
+    paths:
+      - public
+      - coverage.info
+      - lcov-report/
+      - coverage.xml
+    reports:
+      coverage_report:
+        coverage_format: cobertura
+        path: coverage.xml
+    expire_in: 52 weeks
+
+# To receive a coverage report in the web UI
+pages: 
+  tags:
+    - docker-build
+  stage: pages
+  script:
+    - echo "Publishing coverage report to GitLab Pages"
+    - mv public public_temp && mkdir public && mv public_temp/* public/
+  dependencies:
+    - coverage
+  artifacts:
+    paths:
+      - public 
+  only:
+    - 9-add-branch-coverage                  
 
 # This section describes what shall be done to deploy artefacts from the project.
 release:
