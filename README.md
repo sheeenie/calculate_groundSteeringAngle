@@ -32,6 +32,43 @@ Note that the programme inside the Docker container contains the PrimeChecker ex
 yourlastname, yourfirstname;42 is a prime? 0
 ```
 
+## Running h264decoder and OpenDLV Vehicle View
+
+To run the microservices used to decompress H264 video frames and visualise recordings, follow the below steps:
+
+### 1. Pull and run the OpenDLV Vehicle View
+
+```bash
+docker pull chrberger/opendlv-vehicle-view:v0.0.64
+
+docker run --rm -i --init --net=host \
+  --name=opendlv-vehicle-view \
+  -v $PWD:/opt/vehicle-view/recordings \
+  -v /var/run/docker.sock:/var/run/docker.sock \
+  -p 8081:8081 \
+  chrberger/opendlv-vehicle-view:v0.0.64
+```
+### 2. Go to http://<your-vm-ip>:8081 to access via your web browser.
+
+If you have a multipass VM, you can find your VM IP address by running:
+```bash
+multipass info <your-VM-name>
+```
+
+### 3. Build and run the h264decoder
+```bash
+docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 \
+  -f microservices/h264decoder/Dockerfile \
+  -t h264decoder:v0.0.5
+
+# Then run:
+xhost +
+docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp \
+  h264decoder:v0.0.5 --cid=253 --name=img
+```
+
+The above two microservices are needed to decode and visualize the frames from Raspberry Pi camera feed attached to the vehicle. 
+
 ## Authors and Acknowledgment
 Ling Svahn,
 William Johansson, 
