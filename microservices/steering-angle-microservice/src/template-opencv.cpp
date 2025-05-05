@@ -88,11 +88,21 @@ int32_t main(int32_t argc, char **argv) {
                 {
                     // Copy the pixels from the shared memory into our own data structure.
                     cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC4, sharedMemory->data());
+                    //cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC1, sharedMemory->data());
                     img = wrapped.clone();
                 }
                 // TODO: Here, you can add some code to check the sampleTimePoint when the current frame was captured.
                 sharedMemory->unlock();
 
+                // Define the height halfway point
+                int halfHeight = HEIGHT / 2;
+
+                // Black out the top half
+                cv::Rect topHalf(0, 0, WIDTH, halfHeight);
+                img(topHalf) = cv::Scalar(0, 0, 0, 0);  // ARGB black
+
+
+        
                 // TODO: Do something with the frame.
                 // Example: Draw a red rectangle and display image.
                 cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0,0,255));
