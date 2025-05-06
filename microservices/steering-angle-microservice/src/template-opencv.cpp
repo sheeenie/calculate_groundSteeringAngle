@@ -102,7 +102,6 @@ int32_t main(int32_t argc, char **argv) {
                 {
                     // Copy the pixels from the shared memory into our own data structure.
                     cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC4, sharedMemory->data());
-                    //cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC1, sharedMemory->data());
                     img = wrapped.clone();
                 }
                 sharedMemory->unlock();
