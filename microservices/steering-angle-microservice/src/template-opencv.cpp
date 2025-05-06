@@ -109,13 +109,14 @@ int32_t main(int32_t argc, char **argv) {
 
                 // Define the height halfway point
                 int halfHeight = HEIGHT / 2;
+                // Define car's height in pixels
                 int carHeight = HEIGHT - 370;
 
                 // Black out the top half, remove noise 
                 cv::Rect topHalf(0, 0, WIDTH, halfHeight);
                 img(topHalf) = cv::Scalar(0, 0, 0, 0);  // ARGB black
 
-                // Black out the bottom part from pixel 370 down to 480
+                // Black out the bottom part from pixel 370 down to 480, remove car's noise
                 cv::Rect bottomPart(0, 370, WIDTH, carHeight);
                 img(bottomPart) = cv::Scalar(0, 0, 0, 0);  // ARGB black
 
