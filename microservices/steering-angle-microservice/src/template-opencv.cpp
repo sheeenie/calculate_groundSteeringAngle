@@ -1,10 +1,3 @@
-// What the template currently does:
-//  - Attaches to shared memory to read ARGB image frames
-//  - Displays frame visually using OpenCV
-//  - Receives GroundSteeringRequest message (but doesn't do anything on it)
-//  - o verlays red rectangle
-//  - DOES NOT compute or send any new data(e.g. steering angle)
-
 /*
  * Copyright (C) 2020  Christian Berger
  *
@@ -63,6 +56,11 @@ int32_t main(int32_t argc, char **argv) {
             // The instance od4 allows you to send and receive messages.
             cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
+            // Variables for left and right cone distance readings
+            float leftConeDistance = 0.0f;  // Distance to the cone on the left
+            float rightConeDistance = 0.0f; // Distance to the cone on the right
+            std::mutex distanceMutex;
+
             opendlv::proxy::GroundSteeringRequest gsr;
             std::mutex gsrMutex;
             auto onGroundSteeringRequest = [&gsr, &gsrMutex](cluon::data::Envelope &&env){
@@ -73,7 +71,23 @@ int32_t main(int32_t argc, char **argv) {
                 std::cout << "lambda: groundSteering = " << gsr.groundSteering() << std::endl;
             };
 
+            // Handler for distance readings - getting left and right cone distances
+            auto onDistanceReading = [&leftConeDistance, &rightConeDistance, &distanceMutex](cluon::data::Envelope &&env){
+                auto distanceReading = cluon::extractMessage<opendlv::proxy::DistanceReading>(std::move(env));
+                std::lock_guard<std::mutex> lck(distanceMutex);
+                
+                // Determine which distance sensor this is from based on senderStamp
+                if (env.senderStamp() == 0) { // Assuming senderStamp 0 is the left cone sensor
+                    leftConeDistance = distanceReading.distance();
+                    std::cout << "leftConeDistance = " << leftConeDistance << std::endl;
+                } else if (env.senderStamp() == 2) { // Assuming senderStamp 2 is the right cone sensor
+                    rightConeDistance = distanceReading.distance();
+                    std::cout << "rightConeDistance = " << rightConeDistance << std::endl;
+                }
+            };
+
             od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
+            od4.dataTrigger(opendlv::proxy::DistanceReading::ID(), onDistanceReading);
 
             // Endless loop; end the program by pressing Ctrl-C.
             while (od4.isRunning()) {
@@ -90,12 +104,22 @@ int32_t main(int32_t argc, char **argv) {
                     cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC4, sharedMemory->data());
                     img = wrapped.clone();
                 }
-                // TODO: Here, you can add some code to check the sampleTimePoint when the current frame was captured.
                 sharedMemory->unlock();
 
-                // TODO: Do something with the frame.
-                // Example: Draw a red rectangle and display image.
+                // Draw a red rectangle
                 cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0,0,255));
+
+                // Access the current cone distance values
+                float currentLeftDistance, currentRightDistance;
+                {
+                    std::lock_guard<std::mutex> lck(distanceMutex);
+                    currentLeftDistance = leftConeDistance;
+                    currentRightDistance = rightConeDistance;
+                    
+                    // Just display the values in the console (for debugging)
+                    std::cout << "main: leftConeDistance = " << currentLeftDistance 
+                              << ", rightConeDistance = " << currentRightDistance << std::endl;
+                }
 
                 // If you want to access the latest received ground steering, don't forget to lock the mutex:
                 {
@@ -114,4 +138,3 @@ int32_t main(int32_t argc, char **argv) {
     }
     return retCode;
 }
-
