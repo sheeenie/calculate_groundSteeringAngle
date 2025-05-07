@@ -43,7 +43,7 @@ build:
     - docker-build
   stage: build
   script:
-    - apk update && apk add --no-cache curl git make bash qemu-user-static
+    - apk update && apk add --no-cache curl git make bash
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
     - docker buildx create --use --name builder || docker buildx use builder
     - docker buildx inspect --bootstrap
