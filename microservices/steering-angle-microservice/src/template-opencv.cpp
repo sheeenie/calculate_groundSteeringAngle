@@ -24,6 +24,8 @@
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
 
+#include <mutex>  // Added for mutex
+
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
     // Parse the command line parameters as we require the user to specify some mandatory information on startup.
@@ -53,41 +55,48 @@ int32_t main(int32_t argc, char **argv) {
             std::clog << argv[0] << ": Attached to shared memory '" << sharedMemory->name() << " (" << sharedMemory->size() << " bytes)." << std::endl;
 
             // Interface to a running OpenDaVINCI session where network messages are exchanged.
-            // The instance od4 allows you to send and receive messages.
             cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
-            // Variables for left and right cone distance readings
-            float leftConeDistance = 0.0f;  // Distance to the cone on the left
-            float rightConeDistance = 0.0f; // Distance to the cone on the right
-            std::mutex distanceMutex;
-
+            // Variables and mutex for the ground steering angle
             opendlv::proxy::GroundSteeringRequest gsr;
             std::mutex gsrMutex;
+
+            // Variables and mutexes for acceleration and angular velocity
+            float accelerationX = 0.0f;
+            std::mutex accelMutex;
+            float angularVelocityZ = 0.0f;
+            std::mutex angularMutex;
+
+            // Lambda for ground steering
             auto onGroundSteeringRequest = [&gsr, &gsrMutex](cluon::data::Envelope &&env){
-                // The envelope data structure provide further details, such as sampleTimePoint as shown in this test case:
-                // https://github.com/chrberger/libcluon/blob/master/libcluon/testsuites/TestEnvelopeConverter.cpp#L31-L40
                 std::lock_guard<std::mutex> lck(gsrMutex);
                 gsr = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
                 std::cout << "lambda: groundSteering = " << gsr.groundSteering() << std::endl;
             };
 
-            // Handler for distance readings - getting left and right cone distances
-            auto onDistanceReading = [&leftConeDistance, &rightConeDistance, &distanceMutex](cluon::data::Envelope &&env){
-                auto distanceReading = cluon::extractMessage<opendlv::proxy::DistanceReading>(std::move(env));
-                std::lock_guard<std::mutex> lck(distanceMutex);
-                
-                // Determine which distance sensor this is from based on senderStamp
-                if (env.senderStamp() == 0) { // Assuming senderStamp 0 is the left cone sensor
-                    leftConeDistance = distanceReading.distance();
-                    std::cout << "leftConeDistance = " << leftConeDistance << std::endl;
-                } else if (env.senderStamp() == 2) { // Assuming senderStamp 2 is the right cone sensor
-                    rightConeDistance = distanceReading.distance();
-                    std::cout << "rightConeDistance = " << rightConeDistance << std::endl;
-                }
+            // Lambda for acceleration x-value
+            auto onAccelerationReading = [&accelerationX, &accelMutex](cluon::data::Envelope &&env){
+                std::lock_guard<std::mutex> lck(accelMutex);
+                auto acc = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(env));
+                accelerationX = acc.accelerationX();
+                std::cout << "lambda: accelerationX = " << accelerationX << " m/s^2" << std::endl;
+                std::cout << "timestamp = " << env.sampleTimeStamp().seconds() << " seconds" << std::endl;
             };
+            
+            // Lambda for angular velocity reading z-value 
+            auto onAngularVelocityReading = [&angularVelocityZ, &angularMutex](cluon::data::Envelope &&env){
+                std::lock_guard<std::mutex> lck(angularMutex);
+                auto angVel = cluon::extractMessage<opendlv::proxy::AngularVelocityReading>(std::move(env));
+                angularVelocityZ = angVel.angularVelocityZ();
+                std::cout << "lambda: angularVelocityZ = " << angularVelocityZ << " rad/s" << std::endl;
+                std::cout << "timestamp = " << env.sampleTimeStamp().seconds() << " seconds" << std::endl;
+            };
+            
 
+            // Register data triggers
             od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
-            od4.dataTrigger(opendlv::proxy::DistanceReading::ID(), onDistanceReading);
+            od4.dataTrigger(opendlv::proxy::AccelerationReading::ID(), onAccelerationReading); // NEW
+            od4.dataTrigger(opendlv::proxy::AngularVelocityReading::ID(), onAngularVelocityReading); // NEW
 
             // Endless loop; end the program by pressing Ctrl-C.
             while (od4.isRunning()) {
@@ -106,38 +115,25 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 sharedMemory->unlock();
 
-                // Define the height halfway point
-                int halfHeight = HEIGHT / 2;
-                // Define car's height in pixels
-                int carHeight = HEIGHT - 370;
-
-                // Black out the top half, remove noise 
-                cv::Rect topHalf(0, 0, WIDTH, halfHeight);
-                img(topHalf) = cv::Scalar(0, 0, 0, 0);  // ARGB black
-
-                // Black out the bottom part from pixel 370 down to 480, remove car's noise
-                cv::Rect bottomPart(0, 370, WIDTH, carHeight);
-                img(bottomPart) = cv::Scalar(0, 0, 0, 0);  // ARGB black
-
                 // Draw a red rectangle
                 cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0,0,255));
 
-                // Access the current cone distance values
-                float currentLeftDistance, currentRightDistance;
-                {
-                    std::lock_guard<std::mutex> lck(distanceMutex);
-                    currentLeftDistance = leftConeDistance;
-                    currentRightDistance = rightConeDistance;
-                    
-                    // Just display the values in the console (for debugging)
-                    std::cout << "main: leftConeDistance = " << currentLeftDistance 
-                              << ", rightConeDistance = " << currentRightDistance << std::endl;
-                }
-
-                // If you want to access the latest received ground steering, don't forget to lock the mutex:
+                // Access the latest received ground steering
                 {
                     std::lock_guard<std::mutex> lck(gsrMutex);
                     std::cout << "main: groundSteering = " << gsr.groundSteering() << std::endl;
+                }
+
+                // NEW: Access latest acceleration
+                {
+                    std::lock_guard<std::mutex> lck(accelMutex);
+                    std::cout << "main: accelerationX = " << accelerationX << " m/s^2" << std::endl;
+                }
+
+                // NEW: Access latest angular velocity
+                {
+                    std::lock_guard<std::mutex> lck(angularMutex);
+                    std::cout << "main: angularVelocityZ = " << angularVelocityZ << " rad/s" << std::endl;
                 }
 
                 // Display image on your screen.
