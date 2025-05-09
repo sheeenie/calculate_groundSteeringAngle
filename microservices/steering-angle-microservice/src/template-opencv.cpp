@@ -136,6 +136,11 @@ int32_t main(int32_t argc, char **argv) {
                     std::cout << "main: angularVelocityZ = " << angularVelocityZ << " rad/s" << std::endl;
                 }
 
+                // Get the sample time point when the current frame was captured
+                cluon::data::TimeStamp sampleTimePoint = sharedMemory->getTimeStamp().second;
+                uint64_t microseconds = cluon::time::toMicroseconds(sampleTimePoint);
+                // calculate the velocity with the acceleration x-value + time
+                
                 // Display image on your screen.
                 if (VERBOSE) {
                     cv::imshow(sharedMemory->name().c_str(), img);
