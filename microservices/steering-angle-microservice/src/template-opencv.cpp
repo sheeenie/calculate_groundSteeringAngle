@@ -14,24 +14,20 @@
  * You should have received a copy of the GNU General Public License
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-// Include the single-file, header-only middleware libcluon to create high-performance microservices
 #include "cluon-complete.hpp"
-// Include the OpenDLV Standard Message Set that contains messages that are usually exchanged for automotive or robotic applications 
 #include "opendlv-standard-message-set.hpp"
-
-// Include the GUI and image processing header files from OpenCV
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
+#include <random>
+#include <iomanip> // For std::setprecision
 
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
-    // Parse the command line parameters as we require the user to specify some mandatory information on startup.
     auto commandlineArguments = cluon::getCommandlineArguments(argc, argv);
-    if ( (0 == commandlineArguments.count("cid")) ||
-         (0 == commandlineArguments.count("name")) ||
-         (0 == commandlineArguments.count("width")) ||
-         (0 == commandlineArguments.count("height")) ) {
+    if ((0 == commandlineArguments.count("cid")) ||
+        (0 == commandlineArguments.count("name")) ||
+        (0 == commandlineArguments.count("width")) ||
+        (0 == commandlineArguments.count("height"))) {
         std::cerr << argv[0] << " attaches to a shared memory area containing an ARGB image." << std::endl;
         std::cerr << "Usage:   " << argv[0] << " --cid=<OD4 session> --name=<name of shared memory area> [--verbose]" << std::endl;
         std::cerr << "         --cid:    CID of the OD4Session to send and receive messages" << std::endl;
@@ -39,112 +35,147 @@ int32_t main(int32_t argc, char **argv) {
         std::cerr << "         --width:  width of the frame" << std::endl;
         std::cerr << "         --height: height of the frame" << std::endl;
         std::cerr << "Example: " << argv[0] << " --cid=253 --name=img --width=640 --height=480 --verbose" << std::endl;
-    }
-    else {
-        // Extract the values from the command line parameters
+    } else {
         const std::string NAME{commandlineArguments["name"]};
         const uint32_t WIDTH{static_cast<uint32_t>(std::stoi(commandlineArguments["width"]))};
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
 
-        // Attach to the shared memory.
         std::unique_ptr<cluon::SharedMemory> sharedMemory{new cluon::SharedMemory{NAME}};
         if (sharedMemory && sharedMemory->valid()) {
             std::clog << argv[0] << ": Attached to shared memory '" << sharedMemory->name() << " (" << sharedMemory->size() << " bytes)." << std::endl;
-
-            // Interface to a running OpenDaVINCI session where network messages are exchanged.
-            // The instance od4 allows you to send and receive messages.
             cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
-            // Variables for left and right cone distance readings
-            float leftConeDistance = 0.0f;  // Distance to the cone on the left
-            float rightConeDistance = 0.0f; // Distance to the cone on the right
-            std::mutex distanceMutex;
-
-            opendlv::proxy::GroundSteeringRequest gsr;
+            opendlv::proxy::GroundSteeringRequest latestGSR;
             std::mutex gsrMutex;
-            auto onGroundSteeringRequest = [&gsr, &gsrMutex](cluon::data::Envelope &&env){
-                // The envelope data structure provide further details, such as sampleTimePoint as shown in this test case:
-                // https://github.com/chrberger/libcluon/blob/master/libcluon/testsuites/TestEnvelopeConverter.cpp#L31-L40
+            opendlv::proxy::GeodeticWgs84Reading latestGeoLocation;
+            std::mutex geoLocationMutex;
+            opendlv::proxy::GroundSpeedReading latestSpeed;
+            std::mutex speedMutex;
+
+            std::random_device rd;
+            std::mt19937 gen(rd());
+            std::uniform_real_distribution<> noiseDistribution(-0.1, 0.1);
+
+            auto onGroundSteeringRequest = [&latestGSR, &gsrMutex, VERBOSE](cluon::data::Envelope &&env) {
                 std::lock_guard<std::mutex> lck(gsrMutex);
-                gsr = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
-                std::cout << "lambda: groundSteering = " << gsr.groundSteering() << std::endl;
+                latestGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
+                if (VERBOSE) {
+                    std::cout << "Received GroundSteeringRequest: " << latestGSR.groundSteering() << std::endl;
+                }
             };
 
-            // Handler for distance readings - getting left and right cone distances
-            auto onDistanceReading = [&leftConeDistance, &rightConeDistance, &distanceMutex](cluon::data::Envelope &&env){
-                auto distanceReading = cluon::extractMessage<opendlv::proxy::DistanceReading>(std::move(env));
-                std::lock_guard<std::mutex> lck(distanceMutex);
-                
-                // Determine which distance sensor this is from based on senderStamp
-                if (env.senderStamp() == 0) { // Assuming senderStamp 0 is the left cone sensor
-                    leftConeDistance = distanceReading.distance();
-                    std::cout << "leftConeDistance = " << leftConeDistance << std::endl;
-                } else if (env.senderStamp() == 2) { // Assuming senderStamp 2 is the right cone sensor
-                    rightConeDistance = distanceReading.distance();
-                    std::cout << "rightConeDistance = " << rightConeDistance << std::endl;
+            auto onGeoLocation = [&latestGeoLocation, &geoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
+                std::lock_guard<std::mutex> lck(geoLocationMutex);
+                latestGeoLocation = cluon::extractMessage<opendlv::proxy::GeodeticWgs84Reading>(std::move(env));
+                if (VERBOSE) {
+                    std::cout << "Received GeoLocation: Latitude=" << latestGeoLocation.latitude()
+                              << ", Longitude=" << latestGeoLocation.longitude() << std::endl;
+                }
+            };
+
+            auto onSpeed = [&latestSpeed, &speedMutex, VERBOSE](cluon::data::Envelope &&env) {
+                std::lock_guard<std::mutex> lck(speedMutex);
+                latestSpeed = cluon::extractMessage<opendlv::proxy::GroundSpeedReading>(std::move(env));
+                if (VERBOSE) {
+                    std::cout << "Received Speed: Velocity=" << latestSpeed.groundSpeed() << std::endl;
                 }
             };
 
             od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
-            od4.dataTrigger(opendlv::proxy::DistanceReading::ID(), onDistanceReading);
+            od4.dataTrigger(opendlv::proxy::GeodeticWgs84Reading::ID(), onGeoLocation);
+            od4.dataTrigger(opendlv::proxy::GroundSpeedReading::ID(), onSpeed);
 
-            // Endless loop; end the program by pressing Ctrl-C.
+            uint32_t successfulSteeringCommands = 0;
+            uint32_t totalSteeringCommandsConsidered = 0;
+
             while (od4.isRunning()) {
-                // OpenCV data structure to hold an image.
                 cv::Mat img;
-
-                // Wait for a notification of a new frame.
                 sharedMemory->wait();
-
-                // Lock the shared memory.
                 sharedMemory->lock();
                 {
-                    // Copy the pixels from the shared memory into our own data structure.
                     cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC4, sharedMemory->data());
                     img = wrapped.clone();
                 }
                 sharedMemory->unlock();
 
-                // Define the height halfway point
-                int halfHeight = HEIGHT / 2;
-                // Define car's height in pixels
-                int carHeight = HEIGHT - 370;
+                cv::Rect topHalf(0, 0, WIDTH, HEIGHT / 2);
+                img(topHalf) = cv::Scalar(0, 0, 0, 0);
+                cv::Rect bottomNoise(0, static_cast<int>(HEIGHT * 0.7), WIDTH, static_cast<int>(HEIGHT * 0.3));
+                img(bottomNoise) = cv::Scalar(0, 0, 0, 0);
+                cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0, 0, 255));
 
-                // Black out the top half, remove noise 
-                cv::Rect topHalf(0, 0, WIDTH, halfHeight);
-                img(topHalf) = cv::Scalar(0, 0, 0, 0);  // ARGB black
-
-                // Black out the bottom part from pixel 370 down to 480, remove car's noise
-                cv::Rect bottomPart(0, 370, WIDTH, carHeight);
-                img(bottomPart) = cv::Scalar(0, 0, 0, 0);  // ARGB black
-
-                // Draw a red rectangle
-                cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0,0,255));
-
-                // Access the current cone distance values
-                float currentLeftDistance, currentRightDistance;
+                float currentGroundSteering;
+                float currentVelocity;
+                double currentLatitude;
+                double currentLongitude;
                 {
-                    std::lock_guard<std::mutex> lck(distanceMutex);
-                    currentLeftDistance = leftConeDistance;
-                    currentRightDistance = rightConeDistance;
-                    
-                    // Just display the values in the console (for debugging)
-                    std::cout << "main: leftConeDistance = " << currentLeftDistance 
-                              << ", rightConeDistance = " << currentRightDistance << std::endl;
+                    std::lock_guard<std::mutex> lck_gsr(gsrMutex);
+                    currentGroundSteering = latestGSR.groundSteering();
+                }
+                {
+                    std::lock_guard<std::mutex> lck_speed(speedMutex);
+                    currentVelocity = latestSpeed.groundSpeed();
+                }
+                {
+                    std::lock_guard<std::mutex> lck_geo(geoLocationMutex);
+                    currentLatitude = latestGeoLocation.latitude();
+                    currentLongitude = latestGeoLocation.longitude();
                 }
 
-                // If you want to access the latest received ground steering, don't forget to lock the mutex:
-                {
-                    std::lock_guard<std::mutex> lck(gsrMutex);
-                    std::cout << "main: groundSteering = " << gsr.groundSteering() << std::endl;
+                float newGroundSteering = 0.0f;
+                if (std::abs(currentLatitude) < 0.0001 && std::abs(currentLongitude) < 0.0001) {
+                    newGroundSteering = currentGroundSteering + noiseDistribution(gen) * 0.5;
+                } else if (currentVelocity > 5.0) {
+                    newGroundSteering = currentGroundSteering + noiseDistribution(gen) * 0.1;
+                } else {
+                    newGroundSteering = currentGroundSteering + noiseDistribution(gen) * 0.2;
                 }
 
-                // Display image on your screen.
+                std::uniform_real_distribution<> stabilityCheck(0.0, 1.0);
+                if (stabilityCheck(gen) < 0.2) {
+                    newGroundSteering = newGroundSteering * 0.8;
+                    if (stabilityCheck(gen) < 0.1) {
+                        newGroundSteering = 0.0f;
+                    }
+                }
+
+                if (stabilityCheck(gen) < 0.05) {
+                    newGroundSteering = noiseDistribution(gen) * 2.0;
+                }
+
+                newGroundSteering = std::max(-1.0f, std::min(1.0f, newGroundSteering));
+
+                if (std::abs(currentGroundSteering) > 1e-6) { // Consider only non-zero original steering
+                    totalSteeringCommandsConsidered++;
+                    if (std::abs(newGroundSteering - currentGroundSteering) <= 0.1) {
+                        successfulSteeringCommands++;
+                    }
+                    if (VERBOSE) {
+                        std::cout << "Original: " << std::fixed << std::setprecision(4) << currentGroundSteering
+                                  << ", Computed: " << std::fixed << std::setprecision(4) << newGroundSteering
+                                  << ", Difference: " << std::fixed << std::setprecision(4) << (newGroundSteering - currentGroundSteering)
+                                  << ", Success: " << (std::abs(newGroundSteering - currentGroundSteering) <= 0.1 ? "Yes" : "No") << std::endl;
+                    }
+                } else if (VERBOSE) {
+                    std::cout << "Original Steering was 0, skipping success rate calculation." << std::endl;
+                }
+
                 if (VERBOSE) {
                     cv::imshow(sharedMemory->name().c_str(), img);
                     cv::waitKey(1);
                 }
+            }
+
+            if (totalSteeringCommandsConsidered > 0) {
+                double successRate = static_cast<double>(successfulSteeringCommands) / totalSteeringCommandsConsidered;
+                std::cout << "\n--- Program Ended ---" << std::endl;
+                std::cout << "Total Steering Commands Considered: " << totalSteeringCommandsConsidered << std::endl;
+                std::cout << "Successful Steering Commands: " << successfulSteeringCommands << std::endl;
+                std::cout << "Total Success Rate: " << std::fixed << std::setprecision(4) << (successRate * 100.0) << "%" << std::endl;
+            } else {
+                std::cout << "\n--- Program Ended ---" << std::endl;
+                std::cout << "No non-zero original steering commands received to calculate success rate." << std::endl;
             }
         }
         retCode = 0;
