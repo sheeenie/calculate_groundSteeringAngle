@@ -67,6 +67,12 @@ int32_t main(int32_t argc, char **argv) {
             float angularVelocityZ = 0.0f;
             std::mutex angularMutex;
 
+            // Variables to calculate the time difference 
+            uint64_t lastMicroseconds = 0; // To store previous timestamp
+            float velocity = 0.0f;
+            float steeringAngle = 0.0f;
+
+
             // Lambda for ground steering
             auto onGroundSteeringRequest = [&gsr, &gsrMutex](cluon::data::Envelope &&env){
                 std::lock_guard<std::mutex> lck(gsrMutex);
@@ -117,6 +123,33 @@ int32_t main(int32_t argc, char **argv) {
                 // Get the sample time point when the current frame was captured
                 cluon::data::TimeStamp sampleTimePoint = sharedMemory->getTimeStamp().second;
                 uint64_t microseconds = cluon::time::toMicroseconds(sampleTimePoint);
+
+                // Calculate delta time in seconds
+                float deltaTime = (lastMicroseconds > 0) ? (microseconds - lastMicroseconds) / 1e6f : 0.0f;
+
+                // Update last timestamp
+                lastMicroseconds = microseconds;
+
+                // Calculate velocity and steering angle
+                {
+                    std::lock_guard<std::mutex> lck(accelMutex);
+                    velocity = accelerationX * deltaTime; // simple integration
+                }
+
+                {
+                    std::lock_guard<std::mutex> lck(angularMutex);
+                    if (velocity != 0.0f) {
+                        steeringAngle = angularVelocityZ / velocity;
+                    } else {
+                        steeringAngle = 0.0f; // avoid division by zero
+                    }
+                }
+
+                // Print the calculated values
+                std::cout << "main: deltaTime = " << deltaTime << " s" << std::endl;
+                std::cout << "main: velocity = " << velocity << " m/s" << std::endl;
+                std::cout << "main: steeringAngle = " << steeringAngle << " rad" << std::endl;
+
                 sharedMemory->unlock();
 
                 // Get current UTC time
@@ -132,6 +165,21 @@ int32_t main(int32_t argc, char **argv) {
 
                 // Add text overlays to the image
                 cv::putText(img, "Now: " +std::string(utcTimeBuffer) + "; ----- ts: " + sampleTimeStr + " ----- ", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+
+                // Show deltaTime
+                cv::putText(img, "deltaTime: " + std::to_string(deltaTime) + " s", 
+                cv::Point(10, 50), cv::FONT_HERSHEY_SIMPLEX, 0.5, 
+                cv::Scalar(255, 255, 255), 1);
+
+                // Show velocity
+                cv::putText(img, "velocity: " + std::to_string(velocity) + " m/s", 
+                cv::Point(10, 70), cv::FONT_HERSHEY_SIMPLEX, 0.5, 
+                cv::Scalar(255, 255, 255), 1);
+
+                // Show steeringAngle
+                cv::putText(img, "steeringAngle: " + std::to_string(steeringAngle) + " rad", 
+                cv::Point(10, 90), cv::FONT_HERSHEY_SIMPLEX, 0.5, 
+                cv::Scalar(255, 255, 255), 1);
 
                 
 
