@@ -113,7 +113,27 @@ int32_t main(int32_t argc, char **argv) {
                     cv::Mat wrapped(HEIGHT, WIDTH, CV_8UC4, sharedMemory->data());
                     img = wrapped.clone();
                 }
+
+                // Get the sample time point when the current frame was captured
+                cluon::data::TimeStamp sampleTimePoint = sharedMemory->getTimeStamp().second;
+                uint64_t microseconds = cluon::time::toMicroseconds(sampleTimePoint);
                 sharedMemory->unlock();
+
+                // Get current UTC time
+                cluon::data::TimeStamp now = cluon::time::now();
+                std::time_t time_now = static_cast<std::time_t>(now.seconds());
+                std::tm* utcTime = std::gmtime(&time_now);
+
+                char utcTimeBuffer[30];
+                std::strftime(utcTimeBuffer, sizeof(utcTimeBuffer), "%Y-%m-%dT%H:%M:%SZ", utcTime);
+
+                // Convert the sample time point to a readable format
+                std::string sampleTimeStr = std::to_string(microseconds);
+
+                // Add text overlays to the image
+                cv::putText(img, "Now: " +std::string(utcTimeBuffer) + "; ----- ts: " + sampleTimeStr + " ----- ", cv::Point(10, 30), cv::FONT_HERSHEY_SIMPLEX, 0.5, cv::Scalar(255, 255, 255), 1);
+
+                
 
                 // Draw a red rectangle
                 cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0,0,255));
@@ -136,10 +156,6 @@ int32_t main(int32_t argc, char **argv) {
                     std::cout << "main: angularVelocityZ = " << angularVelocityZ << " rad/s" << std::endl;
                 }
 
-                // Get the sample time point when the current frame was captured
-                cluon::data::TimeStamp sampleTimePoint = sharedMemory->getTimeStamp().second;
-                uint64_t microseconds = cluon::time::toMicroseconds(sampleTimePoint);
-                // calculate the velocity with the acceleration x-value + time
                 
                 // Display image on your screen.
                 if (VERBOSE) {
