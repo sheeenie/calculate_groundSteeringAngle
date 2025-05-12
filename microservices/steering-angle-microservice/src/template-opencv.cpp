@@ -42,10 +42,6 @@ int32_t main(int32_t argc, char **argv) {
             std::mutex previousGeoLocationMutex;
             bool hasPreviousHeading = false;
 
-            // Current speed
-            opendlv::proxy::GroundSpeedReading currentSpeed;
-            std::mutex currentSpeedMutex;
-
             // Original groundSteeringRequest
             opendlv::proxy::GroundSteeringRequest currentGSR;
             std::mutex currentGSRMutex;
@@ -70,16 +66,6 @@ int32_t main(int32_t argc, char **argv) {
                 }
             };
             od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation);
-
-            // Lambda to get the speed
-            auto onSpeed = [&currentSpeed, &currentSpeedMutex, VERBOSE](cluon::data::Envelope &&env) {
-                std::lock_guard<std::mutex> lck(currentSpeedMutex);
-                currentSpeed = cluon::extractMessage<opendlv::proxy::GroundSpeedReading>(std::move(env));
-                if (VERBOSE) {
-                    std::cout << "Received Speed: " << currentSpeed.groundSpeed() << std::endl;
-                }
-            };
-            od4.dataTrigger(opendlv::proxy::GroundSpeedReading::ID(), onSpeed);
 
             // Lambda to get the acceleration and compute estimated speed
             auto onAcceleration = [&estimatedVelocity, &lastAccelerationTimestamp, &velocityMutex, VERBOSE](cluon::data::Envelope &&env) {
@@ -130,7 +116,6 @@ int32_t main(int32_t argc, char **argv) {
                 float currentVelocity = 0.0f;
                 float originalSteering = 0.0f;
                 bool hasCurrentHeading = false;
-                bool hasSpeed = false;
                 bool hasOriginalSteering = false;
 
                 {
@@ -139,25 +124,12 @@ int32_t main(int32_t argc, char **argv) {
                 }
 
                 {
-                    std::lock_guard<std::mutex> lck(currentSpeedMutex);
-                    currentVelocity = currentSpeed.groundSpeed();
-
-                    if (currentVelocity < 0.01) {
-                        std::lock_guard<std::mutex> vLck(velocityMutex);
-                        currentVelocity = estimatedVelocity;
-                        std::cout << "Using estimated velocity: " << currentVelocity << std::endl;
-                    }
-
-                    hasSpeed = true;
-                }
-
-                {
                     std::lock_guard<std::mutex> lck(currentGSRMutex);
                     originalSteering = currentGSR.groundSteering();
                     hasOriginalSteering = true;
                 }
 
-                if (hasCurrentHeading && hasPreviousHeading && hasSpeed && hasOriginalSteering) {
+                if (hasCurrentHeading && hasPreviousHeading && hasOriginalSteering) {
                     deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading();
                     predictedSteering = (deltaHeading * 10) / estimatedVelocity;
 
@@ -187,7 +159,6 @@ int32_t main(int32_t argc, char **argv) {
                         std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
                         std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
                         std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
-                        std::cout << "Speed:              " << std::fixed << std::setprecision(2) << currentVelocity << std::endl;
                         std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
                         std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
                         std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
