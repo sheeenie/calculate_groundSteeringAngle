@@ -161,6 +161,15 @@ int32_t main(int32_t argc, char **argv) {
                     deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading();
                     predictedSteering = (deltaHeading * 10) / estimatedVelocity;
 
+                    //float deltaHeadingDeg = currentGeoLocation.heading() - previousGeoLocation.heading();
+                    float deltaHeadingRad = deltaHeading * M_PI / 180.0f;
+                    float deltaTime = 0.1f; // Assuming 10 Hz frame rate
+                    float velocity = std::max(estimatedVelocity, 0.1f); // Prevent div-by-zero
+
+                    float angularVelocity = deltaHeadingRad / deltaTime;
+                    predictedSteering = angularVelocity / velocity;
+
+
                     float difference = std::abs(predictedSteering - originalSteering);
 
                     if (originalSteering != 0.0f) {
