@@ -191,6 +191,7 @@ int32_t main(int32_t argc, char **argv) {
                         std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
                         std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
                         std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
+                        std::cout << " " << std::endl;
                     } else {
                         std::cout << difference << std::endl;
                     }
