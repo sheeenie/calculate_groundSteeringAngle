@@ -2,8 +2,9 @@
 #include "opendlv-standard-message-set.hpp"
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/imgproc/imgproc.hpp>
-#include <random>
-#include <iomanip> // For std::setprecision
+#include <cmath>
+#include <iomanip>
+#include <iostream>
 
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
@@ -27,54 +28,61 @@ int32_t main(int32_t argc, char **argv) {
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory{new cluon::SharedMemory{NAME}};
         if (sharedMemory && sharedMemory->valid()) {
-            std::clog << argv[0] << ": Attached to shared memory '" << sharedMemory->name() << "' (" << sharedMemory->size() << " bytes)." << std::endl;
+            std::clog << argv[0] << ": Attached to shared memory '" << sharedMemory->name() << " (" << sharedMemory->size() << " bytes)." << std::endl;
+
             cluon::OD4Session od4{static_cast<uint16_t>(std::stoi(commandlineArguments["cid"]))};
 
-            opendlv::proxy::GroundSteeringRequest latestGSR;
-            std::mutex gsrMutex;
-            opendlv::proxy::GeodeticWgs84Reading latestGeoLocation;
-            std::mutex geoLocationMutex;
-            opendlv::logic::sensation::Geolocation latestHeadingReading;
-            std::mutex headingMutex;
-            opendlv::proxy::GroundSpeedReading latestSpeed;
-            std::mutex speedMutex;
+            // Mutexes in order to protect the integrity of the threads
 
-            std::random_device rd;
-            std::mt19937 gen(rd());
-            std::uniform_real_distribution<> noiseDistribution(-0.1, 0.1);
-            std::uniform_real_distribution<> independentSteering(-1.0, 1.0);
-            std::uniform_real_distribution<> stabilityCheck(0.0, 1.0);
+            // GeoLocations
+            opendlv::logic::sensation::Geolocation currentGeoLocation;
+            std::mutex currentGeoLocationMutex;
+            opendlv::logic::sensation::Geolocation previousGeoLocation;
+            std::mutex previousGeoLocationMutex;
+            bool hasPreviousHeading = false;
 
-            auto onGroundSteeringRequest = [&latestGSR, &gsrMutex, VERBOSE](cluon::data::Envelope &&env) {
-                std::lock_guard<std::mutex> lck(gsrMutex);
-                latestGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
+            // Current speed
+            opendlv::proxy::GroundSpeedReading currentSpeed;
+            std::mutex currentSpeedMutex;
+
+            // Original groundSteeringRequest
+            opendlv::proxy::GroundSteeringRequest currentGSR;
+            std::mutex currentGSRMutex;
+
+            // Performance tracking variables
+            int successCount = 0;
+            int frameCount = 0;
+            float successRate = 0.0f;
+
+            // Lambda to get the GeoLocaition
+            auto onGeoLocation = [&currentGeoLocation, &currentGeoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
+                std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
+                currentGeoLocation = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
                 if (VERBOSE) {
-                    std::cout << "Received GroundSteeringRequest: " << latestGSR.groundSteering() << std::endl;
+                    std::cout << "Received GeoLocation: Heading=" << currentGeoLocation.heading() << std::endl;
                 }
             };
-
-            auto onGeoLocation = [&latestHeadingReading, &headingMutex, VERBOSE](cluon::data::Envelope &&env) {
-                std::lock_guard<std::mutex> lck(headingMutex);
-                latestHeadingReading = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
-                if (VERBOSE) {
-                    std::cout << "Received Heading: " << latestHeadingReading.heading() << std::endl;
-                }
-            };
-
-            auto onSpeed = [&latestSpeed, &speedMutex, VERBOSE](cluon::data::Envelope &&env) {
-                std::lock_guard<std::mutex> lck(speedMutex);
-                latestSpeed = cluon::extractMessage<opendlv::proxy::GroundSpeedReading>(std::move(env));
-                if (VERBOSE) {
-                    std::cout << "Received Speed: Velocity=" << latestSpeed.groundSpeed() << std::endl;
-                }
-            };
-
-            od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
             od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation);
+
+            // Lambda to get the speed
+            auto onSpeed = [&currentSpeed, &currentSpeedMutex, VERBOSE](cluon::data::Envelope &&env) {
+                std::lock_guard<std::mutex> lck(currentSpeedMutex);
+                currentSpeed = cluon::extractMessage<opendlv::proxy::GroundSpeedReading>(std::move(env));
+                if (VERBOSE) {
+                    std::cout << "Received Speed: " << currentSpeed.groundSpeed() << std::endl;
+                }
+            };
             od4.dataTrigger(opendlv::proxy::GroundSpeedReading::ID(), onSpeed);
 
-            uint32_t successfulSteeringCommands = 0;
-            uint32_t totalSteeringCommandsConsidered = 0;
+            // Lambda to get the ground steering request
+            auto onGroundSteeringRequest = [&currentGSR, &currentGSRMutex, VERBOSE](cluon::data::Envelope &&env) {
+                std::lock_guard<std::mutex> lck(currentGSRMutex);
+                currentGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
+                if (VERBOSE) {
+                    std::cout << "Received GroundSteeringRequest: " << currentGSR.groundSteering() << std::endl;
+                }
+            };
+            od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
 
             while (od4.isRunning()) {
                 cv::Mat img;
@@ -88,61 +96,80 @@ int32_t main(int32_t argc, char **argv) {
 
                 cv::Rect topHalf(0, 0, WIDTH, HEIGHT / 2);
                 img(topHalf) = cv::Scalar(0, 0, 0, 0);
-                cv::Rect bottomNoise(0, static_cast<int>(HEIGHT * 0.7), WIDTH, static_cast<int>(HEIGHT * 0.3));
-                img(bottomNoise) = cv::Scalar(0, 0, 0, 0);
+                cv::Rect bottomPart(0, 370, WIDTH, HEIGHT - 370);
+                img(bottomPart) = cv::Scalar(0, 0, 0, 0);
                 cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0, 0, 255));
 
-                float currentGroundSteering;
-                float currentVelocity;
-                double currentLatitude;
-                double currentLongitude;
-                double currentHeading;
+                float predictedSteering = 0.0f;
+                float deltaHeading = 0.0f;
+                float currentVelocity = 0.0f;
+                float originalSteering = 0.0f;
+                bool hasCurrentHeading = false;
+                bool hasSpeed = false;
+                bool hasOriginalSteering = false;
+
                 {
-                    std::lock_guard<std::mutex> lck_gsr(gsrMutex);
-                    currentGroundSteering = latestGSR.groundSteering();
-                }
-                {
-                    std::lock_guard<std::mutex> lck_speed(speedMutex);
-                    currentVelocity = latestSpeed.groundSpeed();
-                }
-                {
-                    std::lock_guard<std::mutex> lck_geo(geoLocationMutex);
-                    currentLatitude = latestGeoLocation.latitude();
-                    currentLongitude = latestGeoLocation.longitude();
-                }
-                {
-                    std::lock_guard<std::mutex> lck_heading(headingMutex);
-                    currentHeading = latestHeadingReading.heading();
+                    std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
+                    hasCurrentHeading = true;
                 }
 
-                float newGroundSteering = static_cast<float>(independentSteering(gen));
+                {
+                    std::lock_guard<std::mutex> lck(currentSpeedMutex);
+                    currentVelocity = currentSpeed.groundSpeed(); // Groundspeed is received, using the opendlv standard message
 
-                if (stabilityCheck(gen) < 0.2) {
-                    newGroundSteering *= 0.8f;
-                    if (stabilityCheck(gen) < 0.1) {
-                        newGroundSteering = 0.0f;
+                    // DISCLAIMER; THE VELOCITY IS CURRENTLY **ALWAYS** 0
+                    if (currentVelocity < 0.01) {
+                        currentVelocity = 1.0;
+                        std::cout << "Using default speed: " << currentVelocity << std::endl;
                     }
+
+                    hasSpeed = true;
                 }
 
-                if (stabilityCheck(gen) < 0.05) {
-                    newGroundSteering = -0.0837f * static_cast<float>(currentHeading) + 0.247f;
+                {
+                    std::lock_guard<std::mutex> lck(currentGSRMutex);
+                    originalSteering = currentGSR.groundSteering();
+                    hasOriginalSteering = true;
                 }
 
-                newGroundSteering = std::max(-1.0f, std::min(1.0f, newGroundSteering));
+                if (hasCurrentHeading && hasPreviousHeading && hasSpeed && hasOriginalSteering) {
+                    deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading();
 
-                if (std::abs(currentGroundSteering) > 1e-6) {
-                    totalSteeringCommandsConsidered++;
-                    if (std::abs(newGroundSteering - currentGroundSteering) <= 0.1) {
-                        successfulSteeringCommands++;
+                    // Calculation based on speed
+                    // predictedSteering = deltaHeading * currentVelocity * 0.1f; // Example factor
+                    predictedSteering = deltaHeading * 10; // trying to set predictedSteering to just the deltaheading without speed or tuning parameter
+
+                    float difference = std::abs(predictedSteering - originalSteering);
+
+                    if (originalSteering != 0.0f) {
+                        if (difference <= 0.09f) {
+                            successCount++;
+                        }
+                        frameCount++;
+                        if (frameCount > 0) {
+                            successRate = static_cast<float>(successCount) / frameCount;
+                        }
                     }
+
                     if (VERBOSE) {
-                        std::cout << "Original: " << std::fixed << std::setprecision(4) << currentGroundSteering
-                                  << ", Computed: " << std::fixed << std::setprecision(4) << newGroundSteering
-                                  << ", Difference: " << std::fixed << std::setprecision(4) << (newGroundSteering - currentGroundSteering)
-                                  << ", Success: " << (std::abs(newGroundSteering - currentGroundSteering) <= 0.1 ? "Yes" : "No") << std::endl;
+                        std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
+                        std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
+                        std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
+                        std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
+                        std::cout << "Speed:              " << std::fixed << std::setprecision(2) << currentVelocity << std::endl;
+                        std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
+                        std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
+                        std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
+                    } else {
+                        std::cout << difference << std::endl;
                     }
-                } else if (VERBOSE) {
-                    std::cout << "Original Steering was 0, skipping success rate calculation." << std::endl;
+                }
+
+                // Update previousGeoLocation at the end of the loop, otherwise currentGeoLocation = previousGeoLocation
+                {
+                    std::lock_guard<std::mutex> lck(previousGeoLocationMutex);
+                    previousGeoLocation = currentGeoLocation;
+                    hasPreviousHeading = true;
                 }
 
                 if (VERBOSE) {
