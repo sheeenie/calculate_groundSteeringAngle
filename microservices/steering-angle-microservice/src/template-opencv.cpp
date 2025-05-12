@@ -41,7 +41,6 @@ int32_t main(int32_t argc, char **argv) {
             opendlv::logic::sensation::Geolocation previousGeoLocation;
             std::mutex previousGeoLocationMutex;
             bool hasPreviousHeading = false;
-
             // Original groundSteeringRequest
             opendlv::proxy::GroundSteeringRequest currentGSR;
             std::mutex currentGSRMutex;
@@ -111,6 +110,7 @@ int32_t main(int32_t argc, char **argv) {
                 img(bottomPart) = cv::Scalar(0, 0, 0, 0);
                 cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0, 0, 255));
 
+                // Initialize variables 
                 float predictedSteering = 0.0f;
                 float deltaHeading = 0.0f;
                 float currentVelocity = 0.0f;
@@ -120,31 +120,35 @@ int32_t main(int32_t argc, char **argv) {
 
                 {
                     std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
-                    hasCurrentHeading = true;
+                    hasCurrentHeading = true; // If a heading was received, change boolean to true
                 }
 
                 {
                     std::lock_guard<std::mutex> lck(currentGSRMutex);
                     originalSteering = currentGSR.groundSteering();
-                    hasOriginalSteering = true;
+                    hasOriginalSteering = true; // If the original steering was recevied, change boolean to true
                 }
 
-                if (hasCurrentHeading && hasPreviousHeading && hasOriginalSteering) {
-                    deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading();
-                    predictedSteering = (deltaHeading * 10) / estimatedVelocity;
+                if (hasCurrentHeading && hasPreviousHeading && hasOriginalSteering) { // Check whether there are more readings available from the shared memory 
+                    
+                    // ----------------------------  Calculations in order to find the new ground steering angle ----------------------------
 
-                    //float deltaHeadingDeg = currentGeoLocation.heading() - previousGeoLocation.heading();
+
+                    deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading(); // Diff. between prev. and curr. heading angle
+                    // Convert the heading to radius from degrees
                     float deltaHeadingRad = deltaHeading * M_PI / 180.0f;
-                    float deltaTime = 0.1f; // Assuming 10 Hz frame rate
-                    float velocity = std::max(estimatedVelocity, 0.1f); // Prevent div-by-zero
-
+                    // 10Hz frame rate
+                    float deltaTime = 0.1f; 
+                    // Prevent div-by-zero
+                    float velocity = std::max(estimatedVelocity, 0.1f); 
                     float angularVelocity = deltaHeadingRad / deltaTime;
+                    // Final predicted steering, which will be compared to the original ground steering
                     predictedSteering = angularVelocity / velocity;
 
-
+                    // Difference between the predicted and original ground steering
                     float difference = std::abs(predictedSteering - originalSteering);
 
-                    if (originalSteering != 0.0f) {
+                    if (originalSteering != 0.0f) { // Where the ground steering is not 0, check to see if the difference is +-0.09 as per the requirements
                         if (difference <= 0.09f) {
                             successCount++;
                         }
@@ -153,7 +157,7 @@ int32_t main(int32_t argc, char **argv) {
                             successRate = static_cast<float>(successCount) / frameCount;
                         }
                     }
-
+                    // Print the result of the different datapoints and calculations
                     if (VERBOSE) {
                         std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
                         std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
@@ -168,6 +172,7 @@ int32_t main(int32_t argc, char **argv) {
                     }
                 }
 
+                // The previous geo location has to be updated in the end, in order to avoid it being overwritten with the current geo locatio
                 {
                     std::lock_guard<std::mutex> lck(previousGeoLocationMutex);
                     previousGeoLocation = currentGeoLocation;
