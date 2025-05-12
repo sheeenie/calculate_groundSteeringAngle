@@ -141,7 +141,6 @@ int32_t main(int32_t argc, char **argv) {
 
                     float difference = std::abs(predictedSteering - originalSteering);
 
-                    // Check the success rate of steering request correct / frame count where originalSteering != 0
                     if (originalSteering != 0.0f) {
                         if (difference <= 0.09f) {
                             successCount++;
@@ -153,14 +152,14 @@ int32_t main(int32_t argc, char **argv) {
                     }
 
                     if (VERBOSE) {
-                        std::cout << "Original Steering: " << std::fixed << std::setprecision(4) << originalSteering
-                                  << ", Current Heading: " << std::fixed << std::setprecision(4) << currentGeoLocation.heading()
-                                  << ", Previous Heading: " << std::fixed << std::setprecision(4) << previousGeoLocation.heading()
-                                  << ", Delta Heading: " << std::fixed << std::setprecision(4) << deltaHeading
-                                  << ", Speed: " << std::fixed << std::setprecision(2) << currentVelocity
-                                  << ", Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering
-                                  << ", Difference (Predicted - Original): " << std::fixed << std::setprecision(4) << difference
-                                  << ", Success Rate (when original != 0): " << std::fixed << std::setprecision(4) << successRate << std::endl;
+                        std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
+                        std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
+                        std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
+                        std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
+                        std::cout << "Speed:              " << std::fixed << std::setprecision(2) << currentVelocity << std::endl;
+                        std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
+                        std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
+                        std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
                     } else {
                         std::cout << difference << std::endl;
                     }
