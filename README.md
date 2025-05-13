@@ -81,6 +81,18 @@ Here are the steps for our approach:
 ground_steering_angle ≈ angular_velocity / estimated velocity
 ```
 
+### How to build `steering-angle-microservice`:
+
+```bash
+docker build -f Dockerfile -t steering-angle-microservice .
+```
+
+### How to run `steering-angle-microservice `:
+
+```bash
+docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp steering-angle-microservice:latest --cid=253 --name=img --width=640 --height=480 --verbose
+```
+
 ## Authors and Acknowledgment
 Ling Svahn,
 William Johansson, 
