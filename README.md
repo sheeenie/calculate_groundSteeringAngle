@@ -69,6 +69,18 @@ docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp \
 
 The above two microservices are needed to decode and visualize the frames from Raspberry Pi camera feed attached to the vehicle. 
 
+## Steering Angle Estimation using Angular Velocity
+
+We implement a physics-based approach to estimate the ground steering angle using changes in heading (provided from GPS) and estimated velocity (from acceleration / time). This is part of the `steering-angle-microservice`.
+
+Here are the steps for our approach:
+- Calculate **angular velocity** from the change in heading over time.
+- Estimate the car’s **velocity** by integrating acceleration readings over time.
+- Estimate the **ground steering angle** using the formula:
+```bash
+ground_steering_angle ≈ angular_velocity / estimated velocity
+```
+
 ## Authors and Acknowledgment
 Ling Svahn,
 William Johansson, 
