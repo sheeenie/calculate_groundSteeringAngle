@@ -87,10 +87,38 @@ ground_steering_angle ≈ angular_velocity / estimated velocity
 docker build -f Dockerfile -t steering-angle-microservice .
 ```
 
-### How to run `steering-angle-microservice `:
+### How to run `steering-angle-microservice`:
 
 ```bash
 docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp steering-angle-microservice:latest --cid=253 --name=img --width=640 --height=480 --verbose
+```
+
+### Per-frame Output of `steering-angle-microservice`:
+When `steering-angle-microservice` is run with --verbose, the programme prints out the following per frame:
+  • Original ground steering angle value
+  •	Car’s current and previous orientation or heading obtained via GeoLocation
+  •	Heading change between the above two time points
+	•	Predicted ground steering angle
+  •	Difference between predicted ground steering angle and original ground steering angle
+	•	Success rate of predicted ground steering angle value against original ground steering angle
+
+Note that the output is only for frames where original steering data is non-zero (hasOriginalSteering == true and originalSteering != 0.0f).
+
+Success rate is calculated with the following formula:
+```bash
+Success Rate = (Number of successful predictions) / (Number of non-zero steering frames)
+```
+A prediction is considered successful if the difference between predicted and original ground steering angle is within ±0.09.
+
+Example per-frame output:
+```bash
+Original Steering:   -0.0234
+Current Heading:     122.4530
+Previous Heading:    121.9320
+Delta Heading:       0.5210
+Predicted Steering:  -0.0301
+Difference (Pred - Orig): 0.0067
+Success Rate (when original != 0): 87.50%
 ```
 
 ## Authors and Acknowledgment
