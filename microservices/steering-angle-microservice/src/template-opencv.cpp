@@ -52,12 +52,13 @@ int32_t main(int32_t argc, char **argv) {
 
             // Mutexes in order to protect the integrity of the threads
 
-            // GeoLocations
+            // START: GeoLocations
             opendlv::logic::sensation::Geolocation currentGeoLocation;
             std::mutex currentGeoLocationMutex;
             opendlv::logic::sensation::Geolocation previousGeoLocation;
             std::mutex previousGeoLocationMutex;
             bool hasPreviousHeading = false;
+            //END: GeoLocations
             // Original groundSteeringRequest
             opendlv::proxy::GroundSteeringRequest currentGSR;
             std::mutex currentGSRMutex;
@@ -121,13 +122,7 @@ int32_t main(int32_t argc, char **argv) {
                 }
                 sharedMemory->unlock();
 
-                cv::Rect topHalf(0, 0, WIDTH, HEIGHT / 2);
-                img(topHalf) = cv::Scalar(0, 0, 0, 0);
-                cv::Rect bottomPart(0, 370, WIDTH, HEIGHT - 370);
-                img(bottomPart) = cv::Scalar(0, 0, 0, 0);
-                cv::rectangle(img, cv::Point(50, 50), cv::Point(100, 100), cv::Scalar(0, 0, 255));
-
-                // Initialize variables 
+                // Variable initialization 
                 float predictedSteering = 0.0f;
                 float deltaHeading = 0.0f;
                 float currentVelocity = 0.0f;
@@ -135,23 +130,22 @@ int32_t main(int32_t argc, char **argv) {
                 bool hasCurrentHeading = false;
                 bool hasOriginalSteering = false;
 
+                // Safely sets the hasCurrentHeading and hasOriginalSteering to true, avoids race conditions.
                 {
                     std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
-                    hasCurrentHeading = true; // If a heading was received, change boolean to true
+                    hasCurrentHeading = true;
                 }
-
                 {
                     std::lock_guard<std::mutex> lck(currentGSRMutex);
                     originalSteering = currentGSR.groundSteering();
-                    hasOriginalSteering = true; // If the original steering was recevied, change boolean to true
+                    hasOriginalSteering = true;
                 }
 
                 if (hasCurrentHeading && hasPreviousHeading && hasOriginalSteering) { // Check whether there are more readings available from the shared memory 
                     
                     // ----------------------------  Calculations in order to find the new ground steering angle ----------------------------
 
-
-                    deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading(); // Diff. between prev. and curr. heading angle
+                    deltaHeading = currentGeoLocation.heading() - previousGeoLocation.heading();
                     // Convert the heading to radius from degrees
                     float deltaHeadingRad = deltaHeading * M_PI / 180.0f;
                     // 10Hz frame rate
@@ -189,7 +183,7 @@ int32_t main(int32_t argc, char **argv) {
                     }
                 }
 
-                // The previous geo location has to be updated in the end, in order to avoid it being overwritten with the current geo locatio
+                // The previous geo location has to be updated in the end, in order to avoid it being overwritten with the current geolocation
                 {
                     std::lock_guard<std::mutex> lck(previousGeoLocationMutex);
                     previousGeoLocation = currentGeoLocation;
