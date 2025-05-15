@@ -69,6 +69,58 @@ docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp \
 
 The above two microservices are needed to decode and visualize the frames from Raspberry Pi camera feed attached to the vehicle. 
 
+## Steering Angle Estimation using Angular Velocity
+
+We implement a physics-based approach to estimate the ground steering angle using changes in heading (provided from GPS) and estimated velocity (from acceleration / time). This is part of the `steering-angle-microservice`.
+
+Here are the steps for our approach:
+- Calculate **angular velocity** from the change in heading over time.
+- Estimate the car’s **velocity** by integrating acceleration readings over time.
+- Estimate the **ground steering angle** using the formula:
+```bash
+ground_steering_angle ≈ angular_velocity / estimated velocity
+```
+
+### How to build `steering-angle-microservice`:
+
+```bash
+docker build -f Dockerfile -t steering-angle-microservice .
+```
+
+### How to run `steering-angle-microservice`:
+
+```bash
+docker run --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp steering-angle-microservice:latest --cid=253 --name=img --width=640 --height=480 --verbose
+```
+
+### Per-frame Output of `steering-angle-microservice`:
+When `steering-angle-microservice` is run with --verbose, the programme prints out the following per frame:
+  • Original ground steering angle value
+  •	Car’s current and previous orientation or heading obtained via GeoLocation
+  •	Heading change between the above two time points
+	•	Predicted ground steering angle
+  •	Difference between predicted ground steering angle and original ground steering angle
+	•	Success rate of predicted ground steering angle value against original ground steering angle
+
+Note that the output is only for frames where original steering data is non-zero (hasOriginalSteering == true and originalSteering != 0.0f).
+
+Success rate is calculated with the following formula:
+```bash
+Success Rate = (Number of successful predictions) / (Number of non-zero steering frames)
+```
+A prediction is considered successful if the difference between predicted and original ground steering angle is within ±0.09.
+
+Example per-frame output:
+```bash
+Original Steering:   -0.0234
+Current Heading:     122.4530
+Previous Heading:    121.9320
+Delta Heading:       0.5210
+Predicted Steering:  -0.0301
+Difference (Pred - Orig): 0.0067
+Success Rate (when original != 0): 87.50%
+```
+
 ## Authors and Acknowledgment
 Ling Svahn,
 William Johansson, 
