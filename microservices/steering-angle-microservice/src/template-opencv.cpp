@@ -178,31 +178,53 @@ int32_t main(int32_t argc, char **argv) {
                             successRate = static_cast<float>(successCount) / frameCount;
                         }
                     }
-                    // Print the result of the different datapoints and calculations
-                    if (VERBOSE) {
 
-                        if(originalSteering!=0){
-                            //auto timestampMicroS = env.sampleTimeStamp().microseconds();
-                            // to save the calculated steering angle to a new .csv file 
-                            outFile << timestampMicroS << ";" << predictedSteering << ";" << originalSteering << "\n";
-                            std::cout << "Timestamp:   " << std::fixed << std::setprecision(4) << timestampMicroS << std::endl;
-                            std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
-                            std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
-                            std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
-                            std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
-                            std::cout << "Speed:              " << std::fixed << std::setprecision(2) << currentVelocity << std::endl;
-                            std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
-                            std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
-                            std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
-                            std::cout << " -------- " << std::endl;
-                            std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;
-                            std::cout << "   " << std::endl;
-                        }
-                            
-                    } else {
-                        //std::cout << difference << std::endl;
-                        std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;
-                    }
+                    // Print the result of the different datapoints and calculations
+                    std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;    
+                    
+                }
+
+                // gets a pop-up window with more information displayed 
+                if (VERBOSE) {
+                    int lineSpacing = 30;
+                    int baseY = 30;
+
+                    // Timestamp (already present, included for completeness)
+                    cv::putText(img, "Timestamp: " + std::to_string(static_cast<int>(timestampMicroS)), 
+                                cv::Point(10, baseY), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Predicted Steering
+                    cv::putText(img, "Predicted Steering: " + std::to_string(predictedSteering), 
+                                cv::Point(10, baseY + lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+
+                    // Original Steering
+                    cv::putText(img, "Original Steering: " + std::to_string(originalSteering), 
+                                cv::Point(10, baseY + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
+
+                    // Current Heading
+                    cv::putText(img, "Current Heading: " + std::to_string(currentGeoLocation.heading()), 
+                                cv::Point(10, baseY + 4 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Previous Heading
+                    cv::putText(img, "Previous Heading: " + std::to_string(previousGeoLocation.heading()), 
+                                cv::Point(10, baseY + 5 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Delta Heading
+                    cv::putText(img, "Delta Heading: " + std::to_string(deltaHeading), 
+                                cv::Point(10, baseY + 6 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 0), 2);
+
+                    // Difference (Pred - Orig)
+                    cv::putText(img, "Difference (Pred - Orig): " + std::to_string(std::abs(predictedSteering - originalSteering)), 
+                                cv::Point(10, baseY + 7 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
+
+                    // Success Rate
+                    cv::putText(img, "Success Rate: " + std::to_string(successRate * 100.0f) + "%", 
+                                cv::Point(10, baseY + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Show the image
+                    cv::imshow(sharedMemory->name().c_str(), img);
+                    cv::waitKey(1);
+
                 }
 
                 // The previous geo location has to be updated in the end, in order to avoid it being overwritten with the current geolocation
@@ -210,24 +232,6 @@ int32_t main(int32_t argc, char **argv) {
                     std::lock_guard<std::mutex> lck(previousGeoLocationMutex);
                     previousGeoLocation = currentGeoLocation;
                     hasPreviousHeading = true;
-                }
-
-                if (VERBOSE) {
-                    // Draw the timestamp on the image (top-left corner)
-                    int lineSpacing = 30;
-                    int baseY = 30;
-                    
-                    cv::putText(img, "Timestamp: " + std::to_string(static_cast<int>(timestampMicroS)), 
-                                cv::Point(10, baseY), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
-                    cv::putText(img, "Predicted Steering: " + std::to_string(predictedSteering), 
-                                cv::Point(10, baseY + lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
-                    cv::putText(img, "Original Steering: " + std::to_string(originalSteering), 
-                                cv::Point(10, baseY + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
-                    cv::imshow(sharedMemory->name().c_str(), img);
-                    cv::putText(img, "Timestamp: " + std::to_string(static_cast<int>(timestampMicroS)), 
-                                cv::Point(10, baseY), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
-
-                    cv::waitKey(1);
                 }
             }
         }
