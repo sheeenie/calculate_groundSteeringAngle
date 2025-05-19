@@ -213,7 +213,20 @@ int32_t main(int32_t argc, char **argv) {
                 }
 
                 if (VERBOSE) {
+                    // Draw the timestamp on the image (top-left corner)
+                    int lineSpacing = 30;
+                    int baseY = 30;
+                    
+                    cv::putText(img, "Timestamp: " + std::to_string(static_cast<int>(timestampMicroS)), 
+                                cv::Point(10, baseY), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+                    cv::putText(img, "Predicted Steering: " + std::to_string(predictedSteering), 
+                                cv::Point(10, baseY + lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+                    cv::putText(img, "Original Steering: " + std::to_string(originalSteering), 
+                                cv::Point(10, baseY + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
                     cv::imshow(sharedMemory->name().c_str(), img);
+                    cv::putText(img, "Timestamp: " + std::to_string(static_cast<int>(timestampMicroS)), 
+                                cv::Point(10, baseY), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
                     cv::waitKey(1);
                 }
             }
