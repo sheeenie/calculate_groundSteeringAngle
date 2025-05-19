@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <iostream>
 #include <mutex>
+#include <fstream>
 
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
@@ -43,6 +44,11 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t WIDTH{static_cast<uint32_t>(std::stoi(commandlineArguments["width"]))};
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
+        // Open CSV file for writing (will overwrite if it exists)
+        //std::ofstream outFile("calculated_steering.csv");
+        std::ofstream outFile("/output/calculated_steering.csv");
+        outFile << "timestamp; calcSteeringAngle\n";  // Header row
+
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory{new cluon::SharedMemory{NAME}};
         if (sharedMemory && sharedMemory->valid()) {
@@ -160,6 +166,11 @@ int32_t main(int32_t argc, char **argv) {
                     // Final predicted steering, which will be compared to the original ground steering
                     predictedSteering = angularVelocity / velocity;
 
+                    //auto timestampMicroS = env.sampleTimeStamp().microseconds();
+                    // to save the calculated steering angle to a new .csv file 
+                    outFile << timestampMicroS << ";" << predictedSteering << "\n";
+
+
                     // Difference between the predicted and original ground steering
                     float difference = std::abs(predictedSteering - originalSteering);
 
@@ -203,6 +214,7 @@ int32_t main(int32_t argc, char **argv) {
                 }
             }
         }
+        outFile.close();
         retCode = 0;
     }
     return retCode;
