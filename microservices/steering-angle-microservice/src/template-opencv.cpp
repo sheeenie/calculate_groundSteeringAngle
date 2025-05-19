@@ -74,20 +74,24 @@ int32_t main(int32_t argc, char **argv) {
             int frameCount = 0;
             float successRate = 0.0f;
 
+            // variable to sacve the time
+            float timestampMicroS = 0;
+
             // Lambda to get the GeoLocation
             auto onGeoLocation = [&currentGeoLocation, &currentGeoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
                 std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
                 currentGeoLocation = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
                 if (VERBOSE) {
-                    std::cout << "Received GeoLocation: Heading=" << currentGeoLocation.heading() << std::endl;
+                    //std::cout << "Received GeoLocation: Heading=" << currentGeoLocation.heading() << std::endl;
                 }
             };
             od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation);
 
             // Lambda to get the acceleration and compute estimated speed
-            auto onAcceleration = [&estimatedVelocity, &lastAccelerationTimestamp, &velocityMutex, VERBOSE](cluon::data::Envelope &&env) {
+            auto onAcceleration = [&estimatedVelocity, &lastAccelerationTimestamp, &velocityMutex, &timestampMicroS, VERBOSE](cluon::data::Envelope &&env) {
                 auto acc = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(env));
                 float ax = acc.accelerationX();  // assume forward
+                timestampMicroS = env.sampleTimeStamp().microseconds();
                 float timestamp = env.sampleTimeStamp().microseconds() / 1e6f;
 
                 std::lock_guard<std::mutex> lck(velocityMutex);
@@ -95,7 +99,7 @@ int32_t main(int32_t argc, char **argv) {
                     float dt = timestamp - lastAccelerationTimestamp;
                     estimatedVelocity += ax * dt;
                     if (VERBOSE) {
-                        std::cout << "Estimated Velocity: " << estimatedVelocity << " (ax=" << ax << ", dt=" << dt << ")" << std::endl;
+                        //std::cout << "Estimated Velocity: " << estimatedVelocity << " (ax=" << ax << ", dt=" << dt << ")" << std::endl;
                     }
                 }
                 lastAccelerationTimestamp = timestamp;
@@ -107,7 +111,7 @@ int32_t main(int32_t argc, char **argv) {
                 std::lock_guard<std::mutex> lck(currentGSRMutex);
                 currentGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
                 if (VERBOSE) {
-                    std::cout << "Received GroundSteeringRequest: " << currentGSR.groundSteering() << std::endl;
+                    //std::cout << "Received GroundSteeringRequest: " << currentGSR.groundSteering() << std::endl;
                 }
             };
             od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
@@ -170,16 +174,19 @@ int32_t main(int32_t argc, char **argv) {
                     }
                     // Print the result of the different datapoints and calculations
                     if (VERBOSE) {
-                        std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
-                        std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
-                        std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
-                        std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
-                        std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
-                        std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
-                        std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
-                        std::cout << " " << std::endl;
-                    } else {
-                        std::cout << difference << std::endl;
+                        /*
+                            std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
+                            std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
+                            std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
+                            std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
+                            std::cout << "Speed:              " << std::fixed << std::setprecision(2) << currentVelocity << std::endl;
+                            std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
+                            std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
+                            std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
+                        */
+                            std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;
+                        } else {
+                            std::cout << difference << std::endl;
                     }
                 }
 
