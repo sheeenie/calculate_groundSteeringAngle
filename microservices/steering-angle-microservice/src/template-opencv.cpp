@@ -200,7 +200,8 @@ int32_t main(int32_t argc, char **argv) {
                         }
                             
                     } else {
-                        std::cout << difference << std::endl;
+                        //std::cout << difference << std::endl;
+                        std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;
                     }
                 }
 
