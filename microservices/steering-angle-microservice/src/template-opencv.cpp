@@ -47,7 +47,7 @@ int32_t main(int32_t argc, char **argv) {
         // Open CSV file for writing (will overwrite if it exists)
         //std::ofstream outFile("calculated_steering.csv");
         std::ofstream outFile("/output/calculated_steering.csv");
-        outFile << "timestamp; calcSteeringAngle\n";  // Header row
+        outFile << "timestamp; calcSteeringAngle; orginalSteeringAngle\n";  // Header row
 
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory{new cluon::SharedMemory{NAME}};
@@ -166,11 +166,6 @@ int32_t main(int32_t argc, char **argv) {
                     // Final predicted steering, which will be compared to the original ground steering
                     predictedSteering = angularVelocity / velocity;
 
-                    //auto timestampMicroS = env.sampleTimeStamp().microseconds();
-                    // to save the calculated steering angle to a new .csv file 
-                    outFile << timestampMicroS << ";" << predictedSteering << "\n";
-
-
                     // Difference between the predicted and original ground steering
                     float difference = std::abs(predictedSteering - originalSteering);
 
@@ -185,7 +180,12 @@ int32_t main(int32_t argc, char **argv) {
                     }
                     // Print the result of the different datapoints and calculations
                     if (VERBOSE) {
-                        /*
+
+                        if(originalSteering!=0){
+                            //auto timestampMicroS = env.sampleTimeStamp().microseconds();
+                            // to save the calculated steering angle to a new .csv file 
+                            outFile << timestampMicroS << ";" << predictedSteering << ";" << originalSteering << "\n";
+                            std::cout << "Timestamp:   " << std::fixed << std::setprecision(4) << timestampMicroS << std::endl;
                             std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
                             std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
                             std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
@@ -194,10 +194,13 @@ int32_t main(int32_t argc, char **argv) {
                             std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
                             std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
                             std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
-                        */
+                            std::cout << " -------- " << std::endl;
                             std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;
-                        } else {
-                            std::cout << difference << std::endl;
+                            std::cout << "   " << std::endl;
+                        }
+                            
+                    } else {
+                        std::cout << difference << std::endl;
                     }
                 }
 
