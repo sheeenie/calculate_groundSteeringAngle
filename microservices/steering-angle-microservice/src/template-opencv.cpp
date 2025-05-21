@@ -84,35 +84,46 @@ int32_t main(int32_t argc, char **argv) {
             // variable to sacve the time
             float timestampMicroS = 0;
 
-            // Lambda to get the GeoLocation
+            // Lambda function to get the GeoLocation, executed when a geolocation is received
             auto onGeoLocation = [&currentGeoLocation, &currentGeoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
+                // Lock mutex to safely update the shared memory below
                 std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
+                // Extract geolocation from the shared memory and store it in a global variable
                 currentGeoLocation = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
             };
-            od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation);
+            od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation); // Callback registration
 
-            // Lambda to get the acceleration and compute estimated speed
+            // Lambda function to get the acceleration and compute estimated speed, executed when a geolocation is received
             auto onAcceleration = [&estimatedVelocity, &lastAccelerationTimestamp, &velocityMutex, &timestampMicroS, VERBOSE](cluon::data::Envelope &&env) {
+                // Extract acceleration data from the incoming message
                 auto acc = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(env));
-                float ax = acc.accelerationX();  // assume forward
+                // X-axis acceleration
+                float ax = acc.accelerationX();
+                // Store timestamp for calculations and printings
                 timestampMicroS = env.sampleTimeStamp().microseconds();
                 float timestamp = env.sampleTimeStamp().microseconds() / 1e6f;
 
+                // Lock the mutex to safely update velocity-related variables
                 std::lock_guard<std::mutex> lck(velocityMutex);
+                // Only update the velocity if we have a previous timestamp to calculate time difference
                 if (lastAccelerationTimestamp > 0.0f) {
+                    // Calculate time difference between current and previous acceleration reading
                     float dt = timestamp - lastAccelerationTimestamp;
+                    // Update velocity estimate using basic physics: v = v0 + a*t
                     estimatedVelocity += ax * dt;
                 }
                 lastAccelerationTimestamp = timestamp;
             };
-            od4.dataTrigger(opendlv::proxy::AccelerationReading::ID(), onAcceleration);
+            od4.dataTrigger(opendlv::proxy::AccelerationReading::ID(), onAcceleration); // Callback registration
 
-            // Lambda to get the ground steering request
+            // Lambda function to get the ground steering request, executed upon receiving a ground steering request
             auto onGroundSteeringRequest = [&currentGSR, &currentGSRMutex, VERBOSE](cluon::data::Envelope &&env) {
+                // Lock mutex to safely update the shared memory below
                 std::lock_guard<std::mutex> lck(currentGSRMutex);
+                // Extract ground steering from the shared memory and store it in a global variable
                 currentGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
             };
-            od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
+            od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest); // Callback registration
 
             while (od4.isRunning()) {
                 cv::Mat img;
