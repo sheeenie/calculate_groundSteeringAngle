@@ -65,6 +65,7 @@ int32_t main(int32_t argc, char **argv) {
             std::mutex previousGeoLocationMutex;
             bool hasPreviousHeading = false;
             //END: GeoLocations
+
             // Original groundSteeringRequest
             opendlv::proxy::GroundSteeringRequest currentGSR;
             std::mutex currentGSRMutex;
@@ -87,9 +88,6 @@ int32_t main(int32_t argc, char **argv) {
             auto onGeoLocation = [&currentGeoLocation, &currentGeoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
                 std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
                 currentGeoLocation = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
-                if (VERBOSE) {
-                    //std::cout << "Received GeoLocation: Heading=" << currentGeoLocation.heading() << std::endl;
-                }
             };
             od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation);
 
@@ -104,9 +102,6 @@ int32_t main(int32_t argc, char **argv) {
                 if (lastAccelerationTimestamp > 0.0f) {
                     float dt = timestamp - lastAccelerationTimestamp;
                     estimatedVelocity += ax * dt;
-                    if (VERBOSE) {
-                        //std::cout << "Estimated Velocity: " << estimatedVelocity << " (ax=" << ax << ", dt=" << dt << ")" << std::endl;
-                    }
                 }
                 lastAccelerationTimestamp = timestamp;
             };
@@ -116,9 +111,6 @@ int32_t main(int32_t argc, char **argv) {
             auto onGroundSteeringRequest = [&currentGSR, &currentGSRMutex, VERBOSE](cluon::data::Envelope &&env) {
                 std::lock_guard<std::mutex> lck(currentGSRMutex);
                 currentGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
-                if (VERBOSE) {
-                    //std::cout << "Received GroundSteeringRequest: " << currentGSR.groundSteering() << std::endl;
-                }
             };
             od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
 
