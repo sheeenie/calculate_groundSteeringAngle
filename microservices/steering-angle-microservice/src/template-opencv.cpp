@@ -23,6 +23,7 @@
 #include <iomanip>
 #include <iostream>
 #include <mutex>
+#include <fstream>
 
 int32_t main(int32_t argc, char **argv) {
     int32_t retCode{1};
@@ -43,6 +44,12 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t WIDTH{static_cast<uint32_t>(std::stoi(commandlineArguments["width"]))};
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
+        
+        // Open CSV file for writing (will overwrite if it exists)
+        //std::ofstream outFile("calculated_steering.csv");
+        std::ofstream outFile("/output/calculated_steering.csv");
+        outFile << "timestamp; calcSteeringAngle; orginalSteeringAngle\n";  // Header row
+
 
         std::unique_ptr<cluon::SharedMemory> sharedMemory{new cluon::SharedMemory{NAME}};
         if (sharedMemory && sharedMemory->valid()) {
@@ -59,6 +66,7 @@ int32_t main(int32_t argc, char **argv) {
             std::mutex previousGeoLocationMutex;
             bool hasPreviousHeading = false;
             //END: GeoLocations
+
             // Original groundSteeringRequest
             opendlv::proxy::GroundSteeringRequest currentGSR;
             std::mutex currentGSRMutex;
@@ -74,43 +82,49 @@ int32_t main(int32_t argc, char **argv) {
             int frameCount = 0;
             float successRate = 0.0f;
 
-            // Lambda to get the GeoLocation
-            auto onGeoLocation = [&currentGeoLocation, &currentGeoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
-                std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
-                currentGeoLocation = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
-                if (VERBOSE) {
-                    std::cout << "Received GeoLocation: Heading=" << currentGeoLocation.heading() << std::endl;
-                }
-            };
-            od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation);
+            // variable to sacve the time
+            float timestampMicroS = 0;
 
-            // Lambda to get the acceleration and compute estimated speed
-            auto onAcceleration = [&estimatedVelocity, &lastAccelerationTimestamp, &velocityMutex, VERBOSE](cluon::data::Envelope &&env) {
+            // Lambda function to get the GeoLocation, executed when a geolocation is received
+            auto onGeoLocation = [&currentGeoLocation, &currentGeoLocationMutex, VERBOSE](cluon::data::Envelope &&env) {
+                // Lock mutex to safely update the shared memory below
+                std::lock_guard<std::mutex> lck(currentGeoLocationMutex);
+                // Extract geolocation from the shared memory and store it in a global variable
+                currentGeoLocation = cluon::extractMessage<opendlv::logic::sensation::Geolocation>(std::move(env));
+            };
+            od4.dataTrigger(opendlv::logic::sensation::Geolocation::ID(), onGeoLocation); // Callback registration
+
+            // Lambda function to get the acceleration and compute estimated speed, executed when a geolocation is received
+            auto onAcceleration = [&estimatedVelocity, &lastAccelerationTimestamp, &velocityMutex, &timestampMicroS, VERBOSE](cluon::data::Envelope &&env) {
+                // Extract acceleration data from the incoming message
                 auto acc = cluon::extractMessage<opendlv::proxy::AccelerationReading>(std::move(env));
-                float ax = acc.accelerationX();  // assume forward
+                // X-axis acceleration
+                float ax = acc.accelerationX();
+                // Store timestamp for calculations and printings
+                timestampMicroS = env.sampleTimeStamp().microseconds();
                 float timestamp = env.sampleTimeStamp().microseconds() / 1e6f;
 
+                // Lock the mutex to safely update velocity-related variables
                 std::lock_guard<std::mutex> lck(velocityMutex);
+                // Only update the velocity if we have a previous timestamp to calculate time difference
                 if (lastAccelerationTimestamp > 0.0f) {
+                    // Calculate time difference between current and previous acceleration reading
                     float dt = timestamp - lastAccelerationTimestamp;
+                    // Update velocity estimate using basic physics: v = v0 + a*t
                     estimatedVelocity += ax * dt;
-                    if (VERBOSE) {
-                        std::cout << "Estimated Velocity: " << estimatedVelocity << " (ax=" << ax << ", dt=" << dt << ")" << std::endl;
-                    }
                 }
                 lastAccelerationTimestamp = timestamp;
             };
-            od4.dataTrigger(opendlv::proxy::AccelerationReading::ID(), onAcceleration);
+            od4.dataTrigger(opendlv::proxy::AccelerationReading::ID(), onAcceleration); // Callback registration
 
-            // Lambda to get the ground steering request
+            // Lambda function to get the ground steering request, executed upon receiving a ground steering request
             auto onGroundSteeringRequest = [&currentGSR, &currentGSRMutex, VERBOSE](cluon::data::Envelope &&env) {
+                // Lock mutex to safely update the shared memory below
                 std::lock_guard<std::mutex> lck(currentGSRMutex);
+                // Extract ground steering from the shared memory and store it in a global variable
                 currentGSR = cluon::extractMessage<opendlv::proxy::GroundSteeringRequest>(std::move(env));
-                if (VERBOSE) {
-                    std::cout << "Received GroundSteeringRequest: " << currentGSR.groundSteering() << std::endl;
-                }
             };
-            od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest);
+            od4.dataTrigger(opendlv::proxy::GroundSteeringRequest::ID(), onGroundSteeringRequest); // Callback registration
 
             while (od4.isRunning()) {
                 cv::Mat img;
@@ -168,19 +182,54 @@ int32_t main(int32_t argc, char **argv) {
                             successRate = static_cast<float>(successCount) / frameCount;
                         }
                     }
+
                     // Print the result of the different datapoints and calculations
-                    if (VERBOSE) {
-                        std::cout << "Original Steering:   " << std::fixed << std::setprecision(4) << originalSteering << std::endl;
-                        std::cout << "Current Heading:    " << std::fixed << std::setprecision(4) << currentGeoLocation.heading() << std::endl;
-                        std::cout << "Previous Heading:   " << std::fixed << std::setprecision(4) << previousGeoLocation.heading() << std::endl;
-                        std::cout << "Delta Heading:      " << std::fixed << std::setprecision(4) << deltaHeading << std::endl;
-                        std::cout << "Predicted Steering: " << std::fixed << std::setprecision(4) << predictedSteering << std::endl;
-                        std::cout << "Difference (Pred - Orig): " << std::fixed << std::setprecision(4) << difference << std::endl;
-                        std::cout << "Success Rate (when original != 0): " << std::fixed << std::setprecision(2) << successRate * 100.0f << "%" << std::endl;
-                        std::cout << " " << std::endl;
-                    } else {
-                        std::cout << difference << std::endl;
-                    }
+                    std::cout << "group_12;" << timestampMicroS << ";" << predictedSteering << std::endl;    
+                    
+                }
+
+                // gets a pop-up window with more information displayed 
+                if (VERBOSE) {
+                    // Format variables
+                    int lineSpacing = 30;
+                    int baseY = 30;
+
+                    // Timestamp (already present, included for completeness)
+                    cv::putText(img, "Timestamp: " + std::to_string(static_cast<int>(timestampMicroS)), 
+                                cv::Point(10, baseY), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Predicted Steering
+                    cv::putText(img, "Predicted Steering: " + std::to_string(predictedSteering), 
+                                cv::Point(10, baseY + lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 0), 2);
+
+                    // Original Steering
+                    cv::putText(img, "Original Steering: " + std::to_string(originalSteering), 
+                                cv::Point(10, baseY + 2 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 0, 255), 2);
+
+                    // Current Heading
+                    cv::putText(img, "Current Heading: " + std::to_string(currentGeoLocation.heading()), 
+                                cv::Point(10, baseY + 4 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Previous Heading
+                    cv::putText(img, "Previous Heading: " + std::to_string(previousGeoLocation.heading()), 
+                                cv::Point(10, baseY + 5 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Delta Heading
+                    cv::putText(img, "Delta Heading: " + std::to_string(deltaHeading), 
+                                cv::Point(10, baseY + 6 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 0), 2);
+
+                    // Difference (Pred - Orig)
+                    cv::putText(img, "Difference (Pred - Orig): " + std::to_string(std::abs(predictedSteering - originalSteering)), 
+                                cv::Point(10, baseY + 7 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(0, 255, 255), 2);
+
+                    // Success Rate
+                    cv::putText(img, "Success Rate: " + std::to_string(successRate * 100.0f) + "%", 
+                                cv::Point(10, baseY + 8 * lineSpacing), cv::FONT_HERSHEY_SIMPLEX, 0.7, cv::Scalar(255, 255, 255), 2);
+
+                    // Show the image
+                    cv::imshow(sharedMemory->name().c_str(), img);
+                    cv::waitKey(1);
+
                 }
 
                 // The previous geo location has to be updated in the end, in order to avoid it being overwritten with the current geolocation
@@ -189,13 +238,9 @@ int32_t main(int32_t argc, char **argv) {
                     previousGeoLocation = currentGeoLocation;
                     hasPreviousHeading = true;
                 }
-
-                if (VERBOSE) {
-                    cv::imshow(sharedMemory->name().c_str(), img);
-                    cv::waitKey(1);
-                }
             }
         }
+        outFile.close(); // Used for writing to a csv file
         retCode = 0;
     }
     return retCode;
