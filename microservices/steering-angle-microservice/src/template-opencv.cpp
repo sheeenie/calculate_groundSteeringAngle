@@ -44,6 +44,7 @@ int32_t main(int32_t argc, char **argv) {
         const uint32_t WIDTH{static_cast<uint32_t>(std::stoi(commandlineArguments["width"]))};
         const uint32_t HEIGHT{static_cast<uint32_t>(std::stoi(commandlineArguments["height"]))};
         const bool VERBOSE{commandlineArguments.count("verbose") != 0};
+        
         // Open CSV file for writing (will overwrite if it exists)
         //std::ofstream outFile("calculated_steering.csv");
         std::ofstream outFile("/output/calculated_steering.csv");
@@ -189,6 +190,7 @@ int32_t main(int32_t argc, char **argv) {
 
                 // gets a pop-up window with more information displayed 
                 if (VERBOSE) {
+                    // Format variables
                     int lineSpacing = 30;
                     int baseY = 30;
 
@@ -238,7 +240,7 @@ int32_t main(int32_t argc, char **argv) {
                 }
             }
         }
-        outFile.close();
+        outFile.close(); // Used for writing to a csv file
         retCode = 0;
     }
     return retCode;
