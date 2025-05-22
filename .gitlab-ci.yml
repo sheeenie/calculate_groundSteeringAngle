@@ -45,10 +45,10 @@ build:
   script:
     - apk update && apk add --no-cache curl git make bash
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
-    - docker buildx create --use --name builder || docker buildx use builder
+    - docker buildx create --name builder --use
     - docker buildx inspect --bootstrap
 
-    - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
+    - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f microservices/steering-angle-microservice/Dockerfile .
   except: 
     - tags
 
@@ -173,9 +173,9 @@ release:
   script:
     - apk update && apk add --no-cache curl git make bash
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
-    - docker buildx create --use --name builder || docker buildx use builder
+    - docker buildx create --name builder --use
     - docker buildx inspect --bootstrap
 
-    - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.02" --push -f Dockerfile .
+    - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:$CI_COMMIT_TAG" --push -f microservices/steering-angle-microservice/Dockerfile .
   only:
     - /^v\d+\.\d+\.\d+$/
