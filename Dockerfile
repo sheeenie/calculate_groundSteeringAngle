@@ -28,6 +28,7 @@ MAINTAINER Christian Berger christian.berger@gu.se
 RUN apt-get update -y && \
     apt-get upgrade -y && \
     apt-get dist-upgrade -y
+RUN mkdir -p /opt
 
 WORKDIR /opt
 COPY --from=builder /tmp/helloworld .
