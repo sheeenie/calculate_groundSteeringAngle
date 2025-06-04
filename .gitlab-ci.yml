@@ -52,7 +52,6 @@ build:
     - docker buildx inspect --bootstrap
 
     - rm -rf logs/csv-prev/
-    - docker build . --output . --target copytohost
 
     - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
   except: 
