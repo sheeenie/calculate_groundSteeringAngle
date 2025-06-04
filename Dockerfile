@@ -1,34 +1,9 @@
-##################################################
-# Section 1: Build the application
-FROM ubuntu:24.04 as builder
-MAINTAINER Christian Berger christian.berger@gu.se
+FROM ubuntu:22.04
 
-RUN apt-get update -y && \
-    apt-get upgrade -y && \
-    apt-get dist-upgrade -y
+RUN apt-get update && apt-get install -y \
+  pkg-config \
+  build-essential \
+  opendlv-standard-message-set-generator \
+  && rm -rf /var/lib/apt/lists/*
 
-RUN apt-get install -y --no-install-recommends \
-        cmake \
-        build-essential
-
-ADD . /opt/sources
-WORKDIR /opt/sources
-
-RUN cd /opt/sources && \
-    mkdir build && \
-    cd build && \
-    cmake -D CMAKE_BUILD_TYPE=Release .. && \
-    make && cp helloworld /tmp
-
-##################################################
-# Section 2: Bundle the application.
-FROM ubuntu:24.04
-MAINTAINER Christian Berger christian.berger@gu.se
-
-RUN apt-get update -y && \
-    apt-get upgrade -y && \
-    apt-get dist-upgrade -y
-
-WORKDIR /opt
-COPY --from=builder /tmp/helloworld .
-ENTRYPOINT ["/opt/helloworld"]
+WORKDIR ["/opt/template-opencv"]
