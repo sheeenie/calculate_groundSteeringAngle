@@ -35,8 +35,6 @@ stages:
 # Display information before we start the build.
 before_script:
   - export DEBIAN_FRONTEND=noninteractive
-  - ln -fs /usr/share/zoneinfo/UTC /etc/localtime
-  - dpkg-reconfigure --frontend noninteractive tzdata
   - apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
 
 # This section describes what shall be done to build the project.
@@ -45,7 +43,9 @@ build:
     - docker-build
   stage: build
   script:
-    - apk update && apk add --no-cache curl git make bash
+    - apt update && apt install -y curl git make bash
+
+    #- apk update && apk add --no-cache curl git make bash
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
     - docker buildx create --name builder --use
     - docker buildx inspect --bootstrap
@@ -85,11 +85,9 @@ test-hsv-filter:
 # Test for steering angle microservice
 test-steering-analysis:
   stage: test
-  image: docker:latest
+  image: debian:bullseye
   tags:
     - docker-build
-  services:
-    - docker:dind
   script:
     # Build the test image from Dockerfile.test
     - docker build -f Dockerfile.test -t opencv-test .
