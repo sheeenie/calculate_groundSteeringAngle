@@ -86,7 +86,6 @@ test-steering-angle:
   tags:
     - docker-build
   before_script:
-    - apt-get install -y pkg-config
     - apt update && apt install -y pkg-config libopencv-dev
   script:
     - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
