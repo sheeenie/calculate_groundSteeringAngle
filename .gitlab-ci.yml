@@ -87,6 +87,7 @@ test-steering-angle:
   tags:
     - docker-build
   before_script:
+    - DEBIAN_FRONTEND=noninteractive
     - apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
 
     - mkdir /opt/cluon && cd /opt/cluon
