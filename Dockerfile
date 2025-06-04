@@ -1,19 +1,34 @@
-FROM ubuntu:22.04
+##################################################
+# Section 1: Build the application
+FROM ubuntu:24.04 as builder
+MAINTAINER Christian Berger christian.berger@gu.se
 
-RUN apt-get update && apt-get install -y \
-  pkg-config \
-  build-essential \
-  cmake \
-  git \
-  protobuf-compiler \ 
-  && rm -rf /var/lib/apt/lists/*
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get dist-upgrade -y
 
-RUN git clone https://github.com/chalmers-revere/opendlv-standard-message-set.git /opt/opendlv-msgset \
-    && cd /opt/opendlv-msgset/tools/odvd \
-    && mkdir -p build && cd build \
-    && cmake .. && make -j$(nproc) && make install
+RUN apt-get install -y --no-install-recommends \
+        cmake \
+        build-essential
 
-WORKDIR ["/opt/template-opencv"]
+ADD . /opt/sources
+WORKDIR /opt/sources
 
-COPY microservices/steering-angle-microservice/src/opendlv-standard-message-set-v0.9.6.odvd .
-RUN opendlv-standard-message-set-generator opendlv-standard-message-set-v0.9.6.odvd
+RUN cd /opt/sources && \
+    mkdir build && \
+    cd build && \
+    cmake -D CMAKE_BUILD_TYPE=Release .. && \
+    make && cp helloworld /tmp
+
+##################################################
+# Section 2: Bundle the application.
+FROM ubuntu:24.04
+MAINTAINER Christian Berger christian.berger@gu.se
+
+RUN apt-get update -y && \
+    apt-get upgrade -y && \
+    apt-get dist-upgrade -y
+
+WORKDIR /opt
+COPY --from=builder /tmp/helloworld .
+ENTRYPOINT ["/opt/helloworld"]

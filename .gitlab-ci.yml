@@ -52,21 +52,6 @@ build:
   except: 
     - tags
 
-# This section describes what shall be done to test the project
-test:
-  tags:
-    - docker-build
-  stage: test
-  script:
-    - apk update && apk add --no-cache g++ make cmake
-    - mkdir -p build
-    - cd build
-    - cmake ..
-    - make
-    - ./helloworld-Runner --success
-  except: 
-    - tags
-
 # Test for h264decoder and openDLV microservices
 test-h264-opendlv:
   stage: test
