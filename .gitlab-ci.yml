@@ -88,6 +88,7 @@ test-steering-angle:
   image: gcc:12
   before_script:
     - apt update && apt install -y pkg-config libopencv-dev
+    - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
   script:
     - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
     - mkdir -p output
