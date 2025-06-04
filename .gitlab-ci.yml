@@ -169,7 +169,7 @@ pages:
     - while docker ps | grep -q replay-$FILE; do sleep 1; done
     - mkdir -p ./logs/csv/
     - if [ -f ./logs/csv/$FILE.csv ]; then cp ./logs/csv/$FILE.csv; fi
-    - docker cp application-$FILE:./opt/$FILE.csv ./logs/csv/$FILE.csv
+    - docker cp application-$FILE:/opt/$FILE.csv ./logs/csv/$FILE.csv
     - docker stop application-$FILE || true  && docker rm application-$FILE || true
 
   artifacts:
