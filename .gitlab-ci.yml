@@ -27,7 +27,7 @@ services:
 # Three stages; build, test and deploy (if the tags match the syntax)
 stages:
   - build
-  - test-steering-analysis
+  - test
   - coverage
   - pages
   - deploy
