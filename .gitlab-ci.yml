@@ -48,66 +48,50 @@ build:
     - docker buildx create --name builder --use
     - docker buildx inspect --bootstrap
 
+    - rm -rf logs/csv-prev/
+    - docker build . --output . --target copytohost
+
     - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
   except: 
     - tags
 
-# Test for h264decoder and openDLV microservices
-test-h264-opendlv:
-  stage: test
-  only:
-    - 10-h264-opendlv-setup
+build-images:
   tags:
     - docker-build
+  stage: build
   script:
-    - docker build https://github.com/chalmers-revere/opendlv-video-h264-decoder.git#v0.0.5 -t h264decoder:v0.0.5
-    - timeout 10s docker run --rm h264decoder:v0.0.5 --help || echo "h264decoder help timed out or exited"
-    - docker pull chrberger/opendlv-vehicle-view:v0.0.64
-    - echo "Testing opendlv-vehicle-view startup..."
-    - timeout --signal=KILL 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or was killed"
+    - git clone --depth=1 --branch v0.0.4 https://github.com/chalmers-revere/opendlv-video-h264-replay.git
+    - sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirror.math.princeton.edu/pub/ubuntu/|g' opendlv-video-h264-replay/Dockerfile # Use a mirror to avoid issues with the default Ubuntu archive
+    - docker build -t $CI_REGISTRY_IMAGE/video-h264-replay -f opendlv-video-h264-replay/Dockerfile opendlv-video-h264-replay
+    - docker push $CI_REGISTRY_IMAGE/video-h264-replay
+    - docker build -f Dockerfile -t $CI_REGISTRY_IMAGE/application .
+    - docker push $CI_REGISTRY_IMAGE/application
+  
+# # Test for steering angle microservice
+# test-steering-angle:
+#   stage: test
+#   image: ubuntu:22.04
+#   tags:
+#     - docker-build
+#   before_script:
+#     - DEBIAN_FRONTEND=noninteractive apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
 
-# Test for hsv filter microservice
-test-hsv-filter:
-  stage: test
-  only:
-    - 11-add-hsv-filter
-  tags:
-    - docker-build
-  script:
-    - echo "Building hsv-filter microservice from GitHub..."
-    - docker build -t hsv:latest -f Dockerfile https://github.com/chrberger/opendlv-video-hsv-inspector.git
+#     - mkdir /opt/cluon && cd /opt/cluon
+#     - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
 
-    - echo "Testing hsv-filter microservice startup with timeout..."
-    - timeout 10s docker run --rm hsv:latest --name=img --width=640 --height=480 || echo "hsv filter exited or timed out"
-
-# Test for steering angle microservice
-test-steering-angle:
-  stage: test
-  image: ubuntu:22.04
-  tags:
-    - docker-build
-  before_script:
-    - export DEBIAN_FRONTEND=noninteractive
-    - ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-    - dpkg-reconfigure -f noninteractive tzdata
-    - apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
-
-    - mkdir /opt/cluon && cd /opt/cluon
-    - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
-
-    - git clone https://github.com/chalmers-revere/opendlv-standard-message-set.git
-    - cp opendlv-standard-message-set/*.hpp /usr/local/include/
-  script:
-    - mkdir -p outputs
-    - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
-    - mkdir -p output
-    - for f in recordings/*.rec; do
-        name=$(basename "$f" .rec);
-        ./test_analysis --input="$f" --csv="outputs/$name.csv" --svg="outputs/$name.svg";
-      done
-  artifacts:
-    paths:
-      - outputs/
+#     - git clone https://github.com/chalmers-revere/opendlv-standard-message-set.git
+#     - cp opendlv-standard-message-set/*.hpp /usr/local/include/
+#   script:
+#     - mkdir -p outputs
+#     - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
+#     - mkdir -p output
+#     - for f in recordings/*.rec; do
+#         name=$(basename "$f" .rec);
+#         ./test_analysis --input="$f" --csv="outputs/$name.csv" --svg="outputs/$name.svg";
+#       done
+#   artifacts:
+#     paths:
+#       - outputs/
     
 # This section describes how to generate coverage reports
 coverage:
@@ -165,11 +149,153 @@ pages:
   only:
     - 9-add-branch-coverage                  
 
+# Generate CSV files for performance analysis
+.generate-csv: &generate-csv-template
+  tags:
+    - docker-build
+  stage: generate
+  dependencies:
+    - build-and-test
+    - build-images
+  script:
+    - docker pull $CI_REGISTRY_IMAGE/video-h264-replay
+    - docker pull $CI_REGISTRY_IMAGE/application
+    - echo "Processing $FILE.rec"
+    - docker run -d --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp -v $(pwd)/recordings:/recordings --name=replay-$FILE $CI_REGISTRY_IMAGE/video-h264-replay --cid=111 --name=img data/$FILE.rec
+    - sleep 1
+    - docker run -d --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp --name=application-$FILE $CI_REGISTRY_IMAGE/application:latest --cid=111 --name=img --width=640 --height=480 --output=/opt/$FILE.csv
+    - while docker ps | grep -q replay-$FILE; do sleep 1; done
+    - mkdir -p ./logs/csv/
+    - if [ -f ./logs/csv/$FILE.csv ]; then cp ./logs/csv/$FILE.csv; fi
+    - docker cp application-$FILE:./opt/$FILE.csv ./logs/csv/$FILE.csv
+    - docker stop application-$FILE || true  && docker rm application-$FILE || true
+
+  artifacts:
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME-csv"
+    paths:
+      - ./logs/csv/*.csv
+  allow_failure: true
+
+# Apply template to generate CSV files for each recording
+generate-csv-144821:
+  <<: *generate-csv-template
+  variables:
+    FILE: 144821
+
+generate-csv-145043:
+  <<: *generate-csv-template
+  variables:
+    FILE: 145043
+
+generate-csv-145233:
+  <<: *generate-csv-template
+  variables:
+    FILE: 145233
+
+generate-csv-145641:
+  <<: *generate-csv-template
+  variables:
+    FILE: 145641
+
+generate-csv-150001:
+  <<: *generate-csv-template
+  variables:
+    FILE: 150001
+
+
+.download-prev-csv: &download-prev-csv-template
+  image: docker:26-cli
+  services:
+    - name: docker:26-dind
+  tags:
+    - docker-build
+  stage: download
+  before_script:
+    - apk add --no-cache curl
+    
+  script:
+    - echo "Downloading previous CSV files..."
+    - mkdir -p logs/csv-prev
+    - PREV_COMMIT=$(git rev-list --first-parent HEAD | sed -n 2p)
+    - echo "Fetching artifact from commit $PREV_COMMIT"
+    - >
+      curl --header "JOB-TOKEN: $CI_JOB_TOKEN" --location --output logs/csv-prev/$FILE.csv "https://git.chalmers.se/api/v4/projects/$CI_PROJECT_ID/jobs/artifacts/14-automate-pipeline/raw/logs/csv/$FILE.csv?job=generate-csv-$FILE" || echo "No previous artifact found"
+
+  artifacts:
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME-csv-prev"
+    paths:
+      - logs/csv-prev/*.csv
+  allow_failure: true
+
+# Download previous CSV files for performance analysis
+download-prev-csv-144821:
+  <<: *download-prev-csv-template
+  variables:
+    FILE: 144821
+
+download-prev-csv-145043:
+  <<: *download-prev-csv-template
+  variables:
+    FILE: 145043
+
+download-prev-csv-145233:
+  <<: *download-prev-csv-template
+  variables:
+    FILE: 145233
+
+download-prev-csv-145641:
+  <<: *download-prev-csv-template
+  variables:
+    FILE: 145641
+
+download-prev-csv-150001:
+  <<: *download-prev-csv-template
+  variables:
+    FILE: 150001
+
+# Performance analysis job
+analyse:
+  image: python:3.10
+  tags:
+    - docker-build
+  stage: analyse
+  
+  dependencies:
+    - generate-csv-144821
+    - generate-csv-145043
+    - generate-csv-145233
+    - generate-csv-145641
+    - generate-csv-150001
+    - download-prev-csv-144821
+    - download-prev-csv-145043
+    - download-prev-csv-145233
+    - download-prev-csv-145641
+    - download-prev-csv-150001
+
+  before_script:
+    - pip install pandas matplotlib
+    
+  script:
+    - echo "Generating performance analysis report..."
+    - find logs/
+    - ls -l ./logs/csv-prev/
+    - if [ ! "$(ls -A ./logs/csv)" ]; then echo "No CSV files, exiting..."; exit 1; fi
+    - mkdir -p logs/performance-plots
+    - python3 microservices/steering-angle-microservice/src/test_analysis.py csv/*.csv --output logs/performance-plots
+
+  artifacts:
+    name: "$CI_JOB_NAME-$CI_COMMIT_REF_NAME-performance-plots"
+    paths:
+      - logs/performance-plots/*.png
+      - logs/csv-prev/*.csv
+
 # This section describes what shall be done to deploy artefacts from the project.
 release:
   tags:
     - docker-build
   stage: deploy
+  dependencies:
+    - build
   script:
     - apk update && apk add --no-cache curl git make bash
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
