@@ -98,16 +98,19 @@ test-hsv-filter:
 # Test for steering angle microservice
 test-steering-angle:
   stage: test
-  only:
-    - 12-steering-angle-microservice
-  tags:
-    - docker-build
+  image: gcc:12
+  before_script:
+    - apt update && apt install -y pkg-config libopencv-dev
   script:
-    - echo "Building steering-angle microservice from local Dockerfile..."
-    - docker build -t steering-angle:latest -f microservices/steering-angle-microservice/Dockerfile microservices/steering-angle-microservice
-
-    - echo "Testing steering-angle microservice startup..."
-    - timeout --signal=KILL 10s docker run --rm steering-angle:latest --cid=253 --name=img --width=640 --height=480 || echo "steering-angle exited or was killed"
+    - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
+    - mkdir -p output
+    - for f in recordings/*.rec; do
+        name=$(basename "$f" .rec);
+        ./test_analysis --input="$f" --csv="outputs/$name.csv" --svg="outputs/$name.svg";
+      done
+  artifacts:
+    paths:
+      - outputs/
     
 # This section describes how to generate coverage reports
 coverage:
