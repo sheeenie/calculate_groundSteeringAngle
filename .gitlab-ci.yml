@@ -158,7 +158,7 @@ pages:
     - docker-build
   stage: generate
   dependencies:
-    - build-and-test
+    - build
     - build-images
   script:
     - docker pull $CI_REGISTRY_IMAGE/video-h264-replay
