@@ -52,35 +52,26 @@ build:
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
     - docker buildx create --name builder --use
     - docker buildx inspect --bootstrap
-
-    - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
-
+   # - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
+    - docker buildx build --platform linux/amd64,linux/arm/v7 --tag local-build:v0.0.2 -f Dockerfile .
     
   except: 
     - tags
 
 # Test for steering angle microservice
 test-steering-analysis:
-  stage: test
   image: debian:bullseye
-  tags:
-    - docker-build
+  stage: test
   script:
-    # Build the test image from Dockerfile.test
-    - docker build -f Dockerfile.test -t opencv-test .
-
-    # Ensure outputs directory exists in the mounted volume
+    - apt update && apt install -y gnuplot python3
     - mkdir -p outputs
-
-    # Run rec2csv and gnuplot inside the container (mounted to CI project)
-    - docker run --rm -v "$CI_PROJECT_DIR:/opt/project" opencv-test /bin/bash -c "
-        ./rec2csv --input data/test-run.rec --output outputs/steering.csv &&
-        gnuplot plot.gp &&
-        python3 preprocess.py
-      "
+    # Run your rec2csv tool (adjust path if needed)
+    - ./rec2csv --input data/144821.rec --output outputs/steering.csv
+    # Plot (ensure plot.gp exists)
+    - gnuplot plot.gp
   artifacts:
     paths:
-      - outputs/
+      - outputs/  # Saves CSV/plots for download
 
 # This section describes how to generate coverage reports
 coverage:
