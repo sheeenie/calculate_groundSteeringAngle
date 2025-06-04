@@ -83,13 +83,29 @@ test-hsv-filter:
 # Test for steering angle microservice
 test-steering-angle:
   stage: test
+  image: ubuntu:22.04
   tags:
     - docker-build
-  image: chrberger/opendlv-core-dev:latest
   before_script:
-    - apt update && apt install -y pkg-config libopencv-dev
+    - apt update && apt install -y \
+      g++ \
+      cmake \
+      wget \
+      curl \
+      unzip \
+      pkg-config \
+      libopencv-dev \
+      libprotobuf-dev \
+      protobuf-compiler \
+      git \
+
+    - mkdir /opt/cluon && cd /opt/cluon
     - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
+
+    - git clone https://github.com/chalmers-revere/opendlv-standard-message-set.git
+    - cp opendlv-standard-message-set/*.hpp /usr/local/include/
   script:
+    - mkdir -p outputs
     - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
     - mkdir -p output
     - for f in recordings/*.rec; do
