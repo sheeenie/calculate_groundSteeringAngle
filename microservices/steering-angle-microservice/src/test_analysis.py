@@ -36,10 +36,9 @@ def accuracy_calculation(original, predicted, range=0.09):
     return accuracy
 
 # Path to the CSV file
-csv_dir = "data/csv"
-rec_dir = "data/csv"
-prev_csv_dir = "data/csv-prev"  # Directory where previous commit CSVs are stored
-output_dir = "output"
+csv_dir = "logs/csv"
+prev_csv_dir = "logs/csv-prev"  # Directory where previous commit CSVs are stored
+output_dir = "logs/performance-plots"
 os.makedirs(output_dir, exist_ok=True)  # Ensure the output directory exists
 
 for name in recording_files: # Loop through each recording file
