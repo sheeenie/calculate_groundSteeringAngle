@@ -1,4 +1,4 @@
-FROM ubuntu:18.04
+FROM debian:bullseye
 MAINTAINER Christian Berger "christian.berger@gu.se"
 ENV DEBIAN_FRONTEND=noninteractive
 
