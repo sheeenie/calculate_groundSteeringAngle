@@ -85,7 +85,7 @@ test-steering-angle:
   stage: test
   tags:
     - docker-build
-  image: gcc:12
+  image: chrberger/opendlv-core-dev:latest
   before_script:
     - apt update && apt install -y pkg-config libopencv-dev
     - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
