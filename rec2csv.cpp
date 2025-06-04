@@ -5,7 +5,7 @@
 #include <iostream>
 
 int main(int argc, char **argv) {
-    std::string inputFile = "data/CID-140-recording-2020-03-18_144821-selection.rec"; // updated default path
+    std::string inputFile = "data/144821.rec"; // updated default path
     std::string outputFile = "outputs/steering.csv";
 
     // Optional: Allow overriding via command line
