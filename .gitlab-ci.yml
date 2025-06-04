@@ -85,6 +85,7 @@ test-steering-angle:
   stage: test
   tags:
     - docker-build
+  image: gcc:12
   before_script:
     - apt update && apt install -y pkg-config libopencv-dev
   script:
