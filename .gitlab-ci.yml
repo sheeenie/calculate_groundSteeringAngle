@@ -89,9 +89,7 @@ test-steering-angle:
   tags:
     - docker-build
   before_script:
-    - export DEBIAN_FRONTEND=noninteractive
-    - ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
-    - dpkg-reconfigure -f noninteractive tzdata
+    - DEBIAN_FRONTEND=noninteractive
     - apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
 
     - mkdir /opt/cluon && cd /opt/cluon

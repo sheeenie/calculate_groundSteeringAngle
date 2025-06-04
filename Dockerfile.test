@@ -1,0 +1,14 @@
+FROM ubuntu:18.04
+MAINTAINER Christian Berger "christian.berger@gu.se"
+ENV DEBIAN_FRONTEND=noninteractive
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    python3 python3-pip gnuplot && \
+    apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN pip3 install pandas matplotlib
+
+WORKDIR /opt/project
+COPY . .
+
+CMD ["/bin/bash"]
