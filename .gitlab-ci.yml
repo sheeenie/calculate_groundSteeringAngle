@@ -87,7 +87,10 @@ test-steering-angle:
   tags:
     - docker-build
   before_script:
-    - DEBIAN_FRONTEND=noninteractive apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
+    - export DEBIAN_FRONTEND=noninteractive
+    - ln -fs /usr/share/zoneinfo/Etc/UTC /etc/localtime
+    - dpkg-reconfigure -f noninteractive tzdata
+    - apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
 
     - mkdir /opt/cluon && cd /opt/cluon
     - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
