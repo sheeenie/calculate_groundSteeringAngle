@@ -100,8 +100,8 @@ test-steering-angle:
   stage: test
   image: gcc:12
   before_script:
-    - apt-get install -y pkg-config
-    - apt update && apt install -y pkg-config libopencv-dev
+    - sudo apt-get install -y pkg-config
+    - sudo apt update && apt install -y pkg-config libopencv-dev
   script:
     - g++ -std=c++17 -o test_analysis test_analysis.cpp `pkg-config --cflags --libs cluon opencv`
     - mkdir -p output
