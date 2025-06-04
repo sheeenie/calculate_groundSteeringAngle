@@ -88,16 +88,16 @@ test-steering-angle:
     - docker-build
   before_script:
     - apt update && apt install -y \
-      g++ \
-      cmake \
-      wget \
-      curl \
-      unzip \
-      pkg-config \
-      libopencv-dev \
-      libprotobuf-dev \
-      protobuf-compiler \
-      git \
+        g++ \
+        cmake \
+        wget \
+        curl \
+        unzip \
+        pkg-config \
+        libopencv-dev \
+        libprotobuf-dev \
+        protobuf-compiler \
+        git
 
     - mkdir /opt/cluon && cd /opt/cluon
     - curl -L -o cluon-complete.hpp https://github.com/chrberger/libcluon/releases/download/v0.0.132/libcluon-complete-0.0.132.hpp
