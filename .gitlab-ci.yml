@@ -84,7 +84,6 @@ test-hsv-filter:
 
 # Test for steering angle microservice
 test-steering-analysis:
-# Test for plotting & accuracy checking with Python + Gnuplot
   stage: test
   image: docker:latest
   tags:
@@ -95,14 +94,19 @@ test-steering-analysis:
     # Build the test image from Dockerfile.test
     - docker build -f Dockerfile.test -t opencv-test .
 
-    # Create outputs directory if needed
+    # Ensure outputs directory exists in the mounted volume
     - mkdir -p outputs
 
-    # Run the container to execute your test script (assumes preprocess.py is in the repo)
-    - docker run --rm -v "$CI_PROJECT_DIR:/opt/project" opencv-test python3 preprocess.py
+    # Run rec2csv and gnuplot inside the container (mounted to CI project)
+    - docker run --rm -v "$CI_PROJECT_DIR:/opt/project" opencv-test /bin/bash -c "
+        ./rec2csv --input data/test-run.rec --output outputs/steering.csv &&
+        gnuplot plot.gp &&
+        python3 preprocess.py
+      "
   artifacts:
     paths:
       - outputs/
+
 
     
 # This section describes how to generate coverage reports
