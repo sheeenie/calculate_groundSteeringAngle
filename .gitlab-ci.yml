@@ -34,8 +34,10 @@ stages:
 
 # Display information before we start the build.
 before_script:
-  - docker info
-  - docker login -u $CI_REGISTRY_USER -p $CI_REGISTRY_PASSWORD $CI_REGISTRY
+  - export DEBIAN_FRONTEND=noninteractive
+  - ln -fs /usr/share/zoneinfo/UTC /etc/localtime
+  - dpkg-reconfigure --frontend noninteractive tzdata
+  - apt update && apt install -y g++ cmake wget curl unzip pkg-config libopencv-dev libprotobuf-dev protobuf-compiler git
 
 # This section describes what shall be done to build the project.
 build:
