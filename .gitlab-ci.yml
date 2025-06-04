@@ -21,9 +21,8 @@ variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
-  DOCKER_TLS_CERTDIR: ""
+  #DOCKER_TLS_CERTDIR: ""
   #DOCKER_AUTH_CONFIG: '{"auths":{"registry.git.chalmers.se":{"auth":"'"$CI_REGISTRY_AUTH"`"}}}'
-
 
 services:
   - name: docker:24.0-dind
