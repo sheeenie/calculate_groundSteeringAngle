@@ -22,7 +22,7 @@ variables:
   DOCKER_TLS_CERTDIR: ""
   DOCKER_DRIVER: overlay2
   DOCKER_TLS_CERTDIR: ""
-  DOCKER_AUTH_CONFIG: '{"auths":{"registry.git.chalmers.se":{"auth":"'"$CI_REGISTRY_AUTH"`"}}}'
+  #DOCKER_AUTH_CONFIG: '{"auths":{"registry.git.chalmers.se":{"auth":"'"$CI_REGISTRY_AUTH"`"}}}'
 
 
 services:
