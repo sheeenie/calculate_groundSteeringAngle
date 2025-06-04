@@ -1,6 +1,6 @@
 ##################################################
 # Section 1: Build the application
-FROM ubuntu:24.04 as builder
+FROM ubuntu:24.04 AS builder
 MAINTAINER Christian Berger christian.berger@gu.se
 
 RUN apt-get update -y && \

@@ -20,6 +20,10 @@ image: docker:24.0
 variables:
   DOCKER_HOST: tcp://docker:2375
   DOCKER_TLS_CERTDIR: ""
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+  DOCKER_AUTH_CONFIG: '{"auths":{"registry.git.chalmers.se":{"auth":"'"$CI_REGISTRY_AUTH"`"}}}'
+
 
 services:
   - name: docker:24.0-dind
@@ -51,6 +55,8 @@ build:
     - docker buildx inspect --bootstrap
 
     - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
+
+    
   except: 
     - tags
 
