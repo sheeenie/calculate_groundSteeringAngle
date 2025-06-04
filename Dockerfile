@@ -12,3 +12,6 @@ RUN git clone https://github.com/chalmers-revere/opendlv-standard-message-set.gi
     && cmake .. && make -j$(nproc) && make install
 
 WORKDIR ["/opt/template-opencv"]
+
+COPY microservices/steering-angle-microservice/src/opendlv-standard-message-set-v0.9.6.odvd .
+RUN opendlv-standard-message-set-generator opendlv-standard-message-set-v0.9.6.odvd
