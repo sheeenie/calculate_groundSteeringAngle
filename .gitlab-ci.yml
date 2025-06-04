@@ -60,18 +60,21 @@ build:
 
 # Test for steering angle microservice
 test-steering-analysis:
-  image: debian:bullseye
   stage: test
+  tags:
+    - docker-build
   script:
-    - apt update && apt install -y gnuplot python3
-    - mkdir -p outputs
-    # Run your rec2csv tool (adjust path if needed)
-    - ./rec2csv --input data/144821.rec --output outputs/steering.csv
-    # Plot (ensure plot.gp exists)
-    - gnuplot plot.gp
+    - docker build -f Dockerfile.test -t opencv-test .
+    - docker run --rm -v "$CI_PROJECT_DIR:/opt/project" opencv-test /bin/bash -c "
+        cd /opt/project &&
+        ./rec2csv --input data/144821.rec --output outputs/steering.csv &&
+        gnuplot plot.gp &&
+        python3 preprocess.py
+      "
   artifacts:
     paths:
-      - outputs/  # Saves CSV/plots for download
+      - outputs/
+
 
 # This section describes how to generate coverage reports
 coverage:
