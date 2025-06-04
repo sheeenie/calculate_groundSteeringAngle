@@ -28,9 +28,9 @@ services:
 stages:
   - build
   - test-steering-analysis
-  #- coverage
-  #- pages
-  #- deploy
+  - coverage
+  - pages
+  - deploy
 
 # Display information before we start the build.
 before_script:
