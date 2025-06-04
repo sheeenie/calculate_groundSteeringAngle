@@ -28,6 +28,9 @@ services:
 stages:
   - build
   - test
+  - generate
+  - download
+  - analyse
   - coverage
   - pages
   - deploy
