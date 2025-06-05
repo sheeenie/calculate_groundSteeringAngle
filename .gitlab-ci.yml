@@ -162,16 +162,14 @@ pages:
   script:
     - docker pull $CI_REGISTRY_IMAGE/video-h264-replay
     - docker pull $CI_REGISTRY_IMAGE/application
-    - echo "Processing $FILE.rec"
+    - mkdir -p $(pwd)/logs/csv
     - docker run -d --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp -v $(pwd)/data:/data --name=replay-$FILE $CI_REGISTRY_IMAGE/video-h264-replay --cid=111 --name=img data/$FILE.rec
     - sleep 1
     - docker run -d --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp --name=application-$FILE $CI_REGISTRY_IMAGE/application:latest --cid=111 --name=img --width=640 --height=480 --output=/opt/$FILE.csv
     - while docker ps | grep -q replay-$FILE; do sleep 1; done
-    - mkdir -p ./logs/csv/
-    - if [ -f ./logs/csv/$FILE.csv ]; then cp ./logs/csv/$FILE.csv; fi
-    - ls -l /opt
-    - find /opt
-    - bash || true
+    - docker wait application-$FILE
+    - docker logs application-$FILE || true
+    - ls -l ./logs/csv/
     - docker cp application-$FILE:/opt/$FILE.csv ./logs/csv/$FILE.csv
     - docker stop application-$FILE || true  && docker rm application-$FILE || true
 
