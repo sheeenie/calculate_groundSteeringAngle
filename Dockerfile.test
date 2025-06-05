@@ -8,12 +8,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
 
-# Clone and build opendlv
-RUN git clone https://github.com/chalmers-revere/opendlv.git && \
-    cd opendlv && mkdir build && cd build && \
-    cmake .. && make && make install && \
-    cd ../.. && rm -rf opendlv
-
 # Update library cache
 RUN ldconfig
 
