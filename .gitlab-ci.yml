@@ -60,6 +60,7 @@ build:
 
 # Test for steering angle microservice
 test-steering-analysis:
+  image: debian:bullseye
   stage: test
   tags:
     - docker-build
