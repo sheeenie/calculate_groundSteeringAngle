@@ -166,24 +166,22 @@ pages:
     - echo "Processing $FILE.rec"
     - docker run -d -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp -v $(pwd)/data:/data --name=replay-$FILE $CI_REGISTRY_IMAGE/video-h264-replay --cid=111 --name=img /data/$FILE.rec
     - |
-      echo "Waiting for System V SHM to be initialized by replay-$FILE..."
+      echo "Waiting for System V shared memory segment to be ready..."
       for i in {1..30}; do
         if docker exec replay-$FILE ipcs -m | grep -q '0x'; then
-          echo "System V shared memory segment is available."
+          echo "Shared memory segment is available."
           break
         fi
         sleep 1
       done
       if ! docker exec replay-$FILE ipcs -m | grep -q '0x'; then
-        echo "Error: Shared memory segment was not created inside the container in time."
+        echo "Error: Shared memory segment was not created."
         docker logs replay-$FILE
         exit 1
       fi
     - docker run -d --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp -v $(pwd)/logs/csv:/opt --name=application-$FILE $CI_REGISTRY_IMAGE/application:latest --cid=111 --name=img --width=640 --height=480 --output=/opt/$FILE.csv
     - while docker ps | grep -q replay-$FILE; do sleep 1; done
     - mkdir -p ./logs/csv/
-    - docker inspect -f '{{.State.Status}}' application-$FILE
-    - docker logs application-$FILE
     - docker cp application-$FILE:/opt/$FILE.csv ./logs/csv/$FILE.csv
     - docker stop application-$FILE || true
     - docker rm application-$FILE || true
