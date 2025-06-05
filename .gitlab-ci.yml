@@ -165,7 +165,20 @@ pages:
     - docker pull $CI_REGISTRY_IMAGE/application
     - echo "Processing $FILE.rec"
     - docker run -d --rm -ti --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp -v $(pwd)/data:/data --name=replay-$FILE $CI_REGISTRY_IMAGE/video-h264-replay --cid=111 --name=img data/$FILE.rec
-    - sleep 1
+    - |
+      echo "Waiting for /tmp/img to be created by replay-$FILE..."
+      for i in {1..30}; do
+        if [ -e /tmp/img ]; then
+          echo "/tmp/img found."
+          break
+        fi
+        sleep 1
+      done
+      if [ ! -e /tmp/img ]; then
+        echo "Error: /tmp/img was not created in time."
+        docker logs replay-$FILE
+        exit 1
+      fi
     - docker run -d --net=host --ipc=host -e DISPLAY=$DISPLAY -v /tmp:/tmp -v $(pwd)/logs/csv:/opt --name=application-$FILE $CI_REGISTRY_IMAGE/application:latest --cid=111 --name=img --width=640 --height=480 --output=/opt/$FILE.csv
     - while docker ps | grep -q replay-$FILE; do sleep 1; done
     - mkdir -p ./logs/csv/
