@@ -48,11 +48,11 @@ build:
   script:
     - apk update && apk add --no-cache curl git make bash
     - docker run --rm --privileged multiarch/qemu-user-static --reset -p y
+    - cd microservices/steering-angle-microservice
     - docker buildx create --name builder --use
     - docker buildx inspect --bootstrap
 
     - rm -rf logs/csv-prev/
-
     - docker buildx build --platform linux/amd64,linux/arm/v7 --tag "$CI_REGISTRY_IMAGE:v0.0.2"  --push -f Dockerfile .
   except: 
     - tags
@@ -62,8 +62,9 @@ build-images:
     - docker-build
   stage: build
   script:
+    - cd microservices/steering-angle-microservice
     - git clone --depth=1 --branch v0.0.4 https://github.com/chalmers-revere/opendlv-video-h264-replay.git
-    - sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirror.math.princeton.edu/pub/ubuntu/|g' opendlv-video-h264-replay/Dockerfile # Use a mirror to avoid issues with the default Ubuntu archive
+    - sed -i 's|http://archive.ubuntu.com/ubuntu/|http://mirror.math.princeton.edu/pub/ubuntu/|g' opendlv-video-h264-replay/Dockerfile
     - docker build -t $CI_REGISTRY_IMAGE/video-h264-replay -f opendlv-video-h264-replay/Dockerfile opendlv-video-h264-replay
     - docker push $CI_REGISTRY_IMAGE/video-h264-replay
     - docker build -f Dockerfile -t $CI_REGISTRY_IMAGE/application .
