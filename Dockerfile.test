@@ -4,9 +4,19 @@ ENV DEBIAN_FRONTEND=noninteractive
 
 # Install required tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    python3 python3-pip gnuplot g++ make \
-    libcluon-dev libopendlv-dev \
+    python3 python3-pip gnuplot g++ make git cmake \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
+
+RUN git clone https://github.com/chrberger/libcluon.git && \
+    cd libcluon && mkdir build && cd build && \
+    cmake .. && make && make install && \
+    cd ../.. && rm -rf libcluon
+
+RUN git clone https://github.com/chalmers-revere/opendlv.git && \
+    cd opendlv && mkdir build && cd build && \
+    cmake .. && make && make install && \
+    cd ../.. && rm -rf opendlv
+
 
 # Install Python libraries
 RUN pip3 install pandas matplotlib
