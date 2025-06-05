@@ -58,23 +58,45 @@ build:
   except: 
     - tags
 
-# Test for steering angle microservice
+#  Test for steering angle microservice
 test-steering-analysis:
-  image: debian:bullseye
+  image: docker:24.0
   stage: test
   tags:
     - docker-build
+  services:
+    - docker:24.0-dind
+  variables:
+    DOCKER_HOST: tcp://docker:2375
+    DOCKER_TLS_CERTDIR: ""
+    DOCKER_DRIVER: overlay2
+  before_script:
+    - docker info
   script:
+    # Build the test container
     - docker build -f Dockerfile.test -t opencv-test .
+    
+    # Run the container with the processing pipeline
     - docker run --rm -v "$CI_PROJECT_DIR:/opt/project" opencv-test /bin/bash -c "
         cd /opt/project &&
+        echo 'Starting rec2csv processing...' &&
+        ls -la data/ &&
         ./rec2csv --input data/144821.rec --output outputs/steering.csv &&
+        echo 'rec2csv completed. File contents:' &&
+        head -10 outputs/steering.csv &&
+        echo 'Running gnuplot...' &&
         gnuplot plot.gp &&
-        python3 preprocess.py
+        echo 'Gnuplot completed. Generated files:' &&
+        ls -la outputs/
       "
   artifacts:
     paths:
       - outputs/
+    expire_in: 1 week
+  except: 
+    - tags
+
+
 
 
 # This section describes how to generate coverage reports

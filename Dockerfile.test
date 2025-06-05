@@ -7,16 +7,20 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 python3-pip gnuplot g++ make git cmake \
     && apt-get clean && rm -rf /var/lib/apt/lists/*
 
+# Clone and build libcluon
 RUN git clone https://github.com/chrberger/libcluon.git && \
     cd libcluon && mkdir build && cd build && \
     cmake .. && make && make install && \
     cd ../.. && rm -rf libcluon
 
+# Clone and build opendlv
 RUN git clone https://github.com/chalmers-revere/opendlv.git && \
     cd opendlv && mkdir build && cd build && \
     cmake .. && make && make install && \
     cd ../.. && rm -rf opendlv
 
+# Update library cache
+RUN ldconfig
 
 # Install Python libraries
 RUN pip3 install pandas matplotlib
@@ -27,7 +31,10 @@ WORKDIR /opt/project
 # Copy all repo files into container
 COPY . .
 
-# ✅ Compile the rec2csv tool (after source is copied)
+# Create outputs directory
+RUN mkdir -p outputs
+
+# Compile the rec2csv tool (after source is copied)
 RUN g++ -std=c++17 -o rec2csv rec2csv.cpp -lcluon -lopendlv
 
 # Default command (can be overridden in GitLab CI)
